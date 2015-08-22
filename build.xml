@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Defyndian" default="clean">
+	
+	<property prefix="build" file="build.properties"/>
+	
+	<path id="class.path">
+	  <fileset dir="lib/">
+	    <include name="**/*.jar" />
+	  </fileset>
+	</path>
+	
+	<target name="init">
+		<mkdir dir="${build.binDir}"/>
+	</target>
+	
+	<target name="build" depends="init">
+		<javac 	srcdir="${build.srcDir}"
+				destdir="${build.binDir}">
+			<classpath refid="class.path"/>
+		</javac>
+	</target>
+	
+	<target name="deploy" depends="build">
+		<manifestclasspath property="manifest_cp" jarfile="${build.config.jarName}">
+        	<classpath refid="class.path" />
+	    </manifestclasspath>
+		<jar basedir="${build.binDir}"
+			 destfile="${build.config.jarName}">
+			<manifest>
+	      		<attribute name="Main-Class" value="defyndian.config.DefyndianConfig"/>
+				<attribute name="Class-Path" value="${manifest_cp}"/>
+		    </manifest>
+		</jar>
+	</target>
+	
+	<target name="clean" depends="deploy">
+		<delete dir="${build.binDir}"/>
+	</target>
+				
+</project>

@@ -31,6 +31,9 @@
 				<attribute name="Class-Path" value="${manifest_cp}"/>
 		    </manifest>
 		</jar>
+		<jar basedir="${build.binDir}"
+					 destfile="${build.core.jarName}">
+		</jar>
 	</target>
 	
 	<target name="clean" depends="deploy">

@@ -9,15 +9,8 @@ public abstract class DefyndianSensor extends DefyndianNode {
 	
 	public DefyndianSensor(String name, int delay) throws DefyndianMQException, DefyndianDatabaseException{
 		super(name);
+		setPublisher();
 		DELAY = delay;
-	}
-	
-	protected void setup(){
-		logger.info("No setup specified, using default");
-	}
-	
-	protected boolean shouldExit(){
-		return false;
 	}
 	
 	protected abstract boolean sensorFired();
@@ -27,7 +20,7 @@ public abstract class DefyndianSensor extends DefyndianNode {
 	public final void start() throws Exception {
 		logger.info(getName() + " started");
 		setup();
-		while( !shouldExit() ){
+		while( !topShouldExit() ){
 			if( sensorFired() ){
 				createMessages();
 				Thread.sleep(DELAY);
@@ -35,6 +28,5 @@ public abstract class DefyndianSensor extends DefyndianNode {
 		}
 
 	}
-	
 
 }

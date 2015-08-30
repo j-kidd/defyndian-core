@@ -24,6 +24,9 @@ public class RoutingInfo {
 		return exchange;
 	}
 	
-	
+	public static RoutingInfo getRoute(String exchange, String routingKey){
+		String actualExchange = exchange==null ? DEFAULT_EXCHANGE : exchange;
+		return new RoutingInfo(actualExchange, routingKey);
+	}
 	
 }

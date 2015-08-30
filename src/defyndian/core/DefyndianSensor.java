@@ -20,6 +20,7 @@ public abstract class DefyndianSensor extends DefyndianNode {
 	public final void start() throws Exception {
 		logger.info(getName() + " started");
 		setup();
+		publisher.start();
 		while( !topShouldExit() ){
 			if( sensorFired() ){
 				createMessages();

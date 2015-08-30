@@ -1,6 +1,7 @@
 package defyndian.core;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -23,7 +24,7 @@ public abstract class DefyndianNode {
 
 	private static final int MAX_INBOX_SIZE = 10;
 	private static final int MAX_OUTBOX_SIZE = 5;
-	private static final long TIMEOUT_SECONDS = 0;
+	private static final long TIMEOUT_SECONDS = 5;
 	private Connection mqConnection;
 	private java.sql.Connection dbConnection;
 	private DefyndianConfig config;
@@ -32,8 +33,8 @@ public abstract class DefyndianNode {
 	private boolean STOP = false;
 	private LinkedBlockingQueue<DefyndianMessage> inbox;
 	private LinkedBlockingQueue<DefyndianEnvelope> outbox;
-	private Publisher publisher;
-	private Consumer consumer;
+	protected Publisher publisher;
+	protected Consumer consumer;
 	
 	private String name;
 	
@@ -45,11 +46,6 @@ public abstract class DefyndianNode {
 		mqConnection = initialiseMQConnection();
 		dbConnection = initialiseDBConnection();
 		initialiseQueues();
-		try{
-			publisher = new Publisher(outbox, mqConnection.createChannel(), logger);
-		} catch( IOException e ){
-			throw new DefyndianMQException(e.getMessage());
-		}
 	}
 	
 	protected boolean topShouldExit(){
@@ -70,15 +66,10 @@ public abstract class DefyndianNode {
 	public abstract void start() throws Exception;
 	
 	public void stop(){
-		if( consumer!=null )
-			consumer.setStop();
 		if( publisher!=null )
 			publisher.setStop();
 	}
 	
-	public String getName(){
-		return name;
-	}
 	
 	protected void setPublisher() throws DefyndianMQException{
 		try {
@@ -88,12 +79,21 @@ public abstract class DefyndianNode {
 		}
 	}
 	
-	protected void setConsumer(String queue) throws DefyndianMQException{
+	protected void setConsumer() throws DefyndianMQException{
+		setConsumer(config.get(getName()+"."+DefyndianConfig.EXCHANGE_KEY), config.get(getName()+"."+DefyndianConfig.QUEUE_KEY));
+	}
+	
+	protected void setConsumer(String exchange, String queue) throws DefyndianMQException{
 		try {
-			consumer = new Consumer(inbox, mqConnection.createChannel(), queue, logger);
+			consumer = new Consumer(inbox, mqConnection.createChannel(), exchange, queue, logger);
+			consumer.start(InetAddress.getLocalHost().getHostName() + "-" + getName());
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not create new channel for publishing");
 		}
+	}
+	
+	public String getName(){
+		return name;
 	}
 	
 	public Connection getMQConnection(){
@@ -119,10 +119,12 @@ public abstract class DefyndianNode {
 	private void initialiseQueues(){
 		if( inbox!=null )
 			inbox.clear();
+		else
+			inbox = new LinkedBlockingQueue<>(MAX_INBOX_SIZE);
 		if( outbox!=null )
 			outbox.clear();
-		inbox = new LinkedBlockingQueue<>(MAX_INBOX_SIZE);
-		outbox = new LinkedBlockingQueue<>(MAX_OUTBOX_SIZE);
+		else
+			outbox = new LinkedBlockingQueue<>(MAX_OUTBOX_SIZE);
 	}
 	
 	private DefyndianConfig initialiseConfig() throws DefyndianDatabaseException{

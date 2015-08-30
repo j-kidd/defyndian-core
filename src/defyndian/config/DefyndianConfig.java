@@ -16,10 +16,14 @@ import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
 public class DefyndianConfig {
 
-	private static final String HOST_KEY = "host";
-	private static final String USERNAME_KEY = "username";
-	private static final String PASSWORD_KEY = "password";
-	private static final String DATABASE_KEY = "database";
+	public static final String HOST_KEY = "host";
+	public static final String USERNAME_KEY = "username";
+	public static final String PASSWORD_KEY = "password";
+	public static final String DATABASE_KEY = "database";
+	
+	public static final String EXCHANGE_KEY = "mq.exchange";
+	public static final String QUEUE_KEY = "mq.queue";
+	
 	
 	private static final File BASE_CONFIG_FILE = new File("/usr/local/etc/defyndian/defyndian.conf");
 	private HashMap<String, String> config;

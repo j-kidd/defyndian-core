@@ -11,19 +11,14 @@ public abstract class DefyndianActor extends DefyndianNode {
 	
 	public DefyndianActor(String name) throws DefyndianMQException, DefyndianDatabaseException {
 		super(name);
-		queue = name;
-		setConsumer(queue);
-	}
-	
-	public DefyndianActor(String name, String queue) throws DefyndianMQException, DefyndianDatabaseException{
-		super(name);
-		this.queue = queue;
-		setConsumer(queue);
+		setConsumer();
 	}
 
 	protected void tryToProcessAMessage() throws InterruptedException{
+		logger.debug("Waiting on getting a message from inbox");
 		DefyndianMessage message = getMessageFromInbox();
-		handleMessage(message);
+		if( message != null )  // Null is returned on timeout
+			handleMessage(message);
 	}
 	
 	protected abstract void handleMessage(DefyndianMessage message);
@@ -37,6 +32,8 @@ public abstract class DefyndianActor extends DefyndianNode {
 				tryToProcessAMessage();
 			} catch (InterruptedException e){
 				logger.error("Interrupted while getting message from inbox");
+			} catch (Exception e){
+				logger.error("Error while processing message, continuing", e);
 			}
 		}
 	}

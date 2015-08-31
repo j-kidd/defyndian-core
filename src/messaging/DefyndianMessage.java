@@ -19,8 +19,13 @@ public class DefyndianMessage {
 	
 	protected DefyndianMessage(byte[] body) throws ParseException{
 		extras = (JSONObject) parser.parse(new String(body));
-		long timeMillis = (long) extras.get(CREATION_TIME_KEY);
-		extras.put(CREATION_TIME_KEY, Date.from(Instant.ofEpochMilli(timeMillis)));
+		Object creationTime = extras.get(CREATION_TIME_KEY);
+		if( creationTime==null )
+			extras.put(CREATION_TIME_KEY, new Date());
+		else{
+			long timeMillis = (long) creationTime; 
+			extras.put(CREATION_TIME_KEY, Date.from(Instant.ofEpochMilli(timeMillis)));
+		}
 	}
 	
 	protected DefyndianMessage(String body){

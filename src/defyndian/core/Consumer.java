@@ -42,7 +42,7 @@ public class Consumer extends com.rabbitmq.client.DefaultConsumer{
 	public void start(String consumerTag) throws DefyndianMQException{
 		try {
 			logger.info("Beginning to consume " + consumerTag + " " + queue);
-			getChannel().basicConsume(queue, false, consumerTag, this);
+			getChannel().basicConsume(queue, true, consumerTag, this);
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not begin consuming");
 		}
@@ -52,10 +52,13 @@ public class Consumer extends com.rabbitmq.client.DefaultConsumer{
 	public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body){
 		try{
 			DefyndianMessage message = DefyndianMessage.fromJSONData(body);
-			logger.debug(new String(body));
-			logger.debug(message.getExtrasKeys());
-			messageQueue.put(message);
-			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			try{
+				logger.debug(new String(body));
+				logger.debug(message.getExtrasKeys());
+				messageQueue.put(message);
+			} catch( Exception e){
+				logger.error("Error while handling message", e);
+			}
 		} catch( Exception e ){
 			logger.error("Error while getting messages from queue [" + queue + "]", e);
 		}

@@ -73,6 +73,23 @@ public abstract class DefyndianNode {
 			publisher.setStop();
 	}
 	
+	protected void shutdown() throws DefyndianMQException, DefyndianDatabaseException{
+		if( publisher!=null ){
+			publisher.setStop();
+		}
+		try{
+			mqConnection.close();
+		} catch( IOException e ){
+			throw new DefyndianMQException("Could not shutdown mq connection: " + e);
+		}
+		
+		try {
+			dbConnection.close();
+		} catch (SQLException e) {
+			throw new DefyndianDatabaseException("Could not shutdown db connection: " + e);
+		}
+	}
+	
 	
 	protected void setPublisher() throws DefyndianMQException{
 		try {
@@ -83,7 +100,12 @@ public abstract class DefyndianNode {
 	}
 	
 	protected void setConsumer() throws DefyndianMQException{
-		setConsumer(getConfigValue(DefyndianConfig.EXCHANGE_KEY), getConfigValue(DefyndianConfig.QUEUE_KEY));
+		String exchange = getConfigValue(DefyndianConfig.EXCHANGE_KEY);
+		String queue = getConfigValue(DefyndianConfig.QUEUE_KEY);
+		if( exchange==null | queue==null ){
+			throw new DefyndianMQException("No exchange or queue specified");
+		}
+		setConsumer(exchange, queue);
 	}
 	
 	protected void setConsumer(String exchange, String queue) throws DefyndianMQException{
@@ -95,8 +117,32 @@ public abstract class DefyndianNode {
 		}
 	}
 	
+	public boolean hasConfigValue(String key){
+		String value = config.get(getName() + "." + key);
+		if( value!=null ){
+			return true;
+		}
+		else
+			return config.get(key)!=null;
+	}
+	
 	public String getConfigValue(String key){
-		return config.get(getName() + "." + key);
+		String value = config.get(getName() + "." + key);
+		if( value==null ){
+			value = config.get(key);
+		}
+		return value;
+	}
+	
+	public String getConfigValue(String key, String defaultValue){
+		String value = config.get(getName() + "." + key);
+		if( value==null ){
+			value = config.get(key);
+		}
+		if( value==null )
+			return defaultValue;
+		else
+			return value;
 	}
 	
 	public String getName(){

@@ -33,7 +33,7 @@ public abstract class DefyndianSensor extends DefyndianNode {
 				Thread.sleep(DELAY*1000);
 			}
 		}
-
+		shutdown();
 	}
 
 }

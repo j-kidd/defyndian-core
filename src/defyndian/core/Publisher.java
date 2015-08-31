@@ -46,7 +46,7 @@ public class Publisher extends Thread{
 			}
 			try {
 				logger.debug("Publishing message to [ " + envelope.getRoute().getExchange()+":"+envelope.getRoute().getRoutingKey()+" ]");
-				channel.basicPublish(envelope.getRoute().getExchange(), envelope.getRoute().getRoutingKey().toString(), null, envelope.getMessage().getMessageBody());
+				channel.basicPublish(envelope.getRoute().getExchange(), envelope.getRoute().getRoutingKey().toString(), null, envelope.getMessage().toJSONString().getBytes());
 			} catch (IOException e) {
 				logger.error("Could not publish message: " + new String(envelope.getMessage().getMessageBody()));
 			}

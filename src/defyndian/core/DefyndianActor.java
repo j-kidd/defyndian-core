@@ -34,6 +34,7 @@ public abstract class DefyndianActor extends DefyndianNode {
 				logger.error("Error while processing message, continuing", e);
 			}
 		}
+		shutdown();
 	}
 
 }

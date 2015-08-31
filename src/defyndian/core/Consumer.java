@@ -51,7 +51,9 @@ public class Consumer extends com.rabbitmq.client.DefaultConsumer{
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body){
 		try{
-			DefyndianMessage message = DefyndianMessage.fromData(body);
+			DefyndianMessage message = DefyndianMessage.fromJSONData(body);
+			logger.debug(new String(body));
+			logger.debug(message.getExtrasKeys());
 			messageQueue.put(message);
 			getChannel().basicAck(envelope.getDeliveryTag(), false);
 		} catch( Exception e ){
@@ -65,6 +67,8 @@ public class Consumer extends com.rabbitmq.client.DefaultConsumer{
 		try{
 			getChannel().exchangeDeclare(exchange, "topic", true);
 			getChannel().queueDeclare(queue, true, false, false, null);
+			if( routingKeys==null )
+				throw new DefyndianMQException("Must specify routing keys to bind for this queue");
 			String[] routingKeysToBind = routingKeys.split(KEY_SEPARATOR);
 			for( String key : routingKeysToBind ){
 				logger.info("Binding queue - ["+exchange + ":" + key + "] -> " + queue);

@@ -23,7 +23,7 @@ public class DefyndianConfig {
 	
 	public static final String EXCHANGE_KEY = "mq.exchange";
 	public static final String QUEUE_KEY = "mq.queue";
-	
+	public static final String ROUTING_KEYS = "routingkeys";
 	
 	private static final File BASE_CONFIG_FILE = new File("/usr/local/etc/defyndian/defyndian.conf");
 	private HashMap<String, String> config;

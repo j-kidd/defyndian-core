@@ -32,7 +32,7 @@ public class Publisher extends Thread{
 	
 	@Override
 	public void run(){
-		super.run();
+		logger.info("Publisher started");
 		while( !STOP ){
 			DefyndianEnvelope envelope;
 			try {
@@ -41,8 +41,12 @@ public class Publisher extends Thread{
 				logger.warn("Interrupted while waiting for outbox messages");
 				continue;
 			}
+			if( envelope==null ){
+				continue;
+			}
 			try {
-				channel.basicPublish(envelope.getRoute().getExchange(), envelope.getRoute().getRoutingKey(), null, envelope.getMessage().getMessageBody());
+				logger.debug("Publishing message to [ " + envelope.getRoute().getExchange()+":"+envelope.getRoute().getRoutingKey()+" ]");
+				channel.basicPublish(envelope.getRoute().getExchange(), envelope.getRoute().getRoutingKey().toString(), null, envelope.getMessage().getMessageBody());
 			} catch (IOException e) {
 				logger.error("Could not publish message: " + new String(envelope.getMessage().getMessageBody()));
 			}

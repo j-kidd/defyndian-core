@@ -18,18 +18,24 @@ import messaging.DefyndianMessage;
 
 public class Consumer extends com.rabbitmq.client.DefaultConsumer{
 
+	private static final String KEY_SEPARATOR = ",";
 	private BlockingQueue<DefyndianMessage> messageQueue;
 	private String exchange;
 	private String queue;
 	private final Logger logger;
 	
-	public Consumer(BlockingQueue<DefyndianMessage> messageQueue, Channel channel, String exchange, String queue, Logger logger) throws DefyndianMQException{
+	public Consumer(	BlockingQueue<DefyndianMessage> messageQueue, 
+						Channel channel, 
+						String exchange, 
+						String queue,
+						String routingKeys,
+						Logger logger) throws DefyndianMQException{
 		super(channel);
 		this.messageQueue = messageQueue;
 		this.exchange = exchange;
 		this.queue = queue;
 		this.logger = logger;
-		initialiseQueue();
+		initialiseQueue(routingKeys);
 		logger.info("Consumer created: " + exchange + " " + queue);
 	}
 	
@@ -54,11 +60,16 @@ public class Consumer extends com.rabbitmq.client.DefaultConsumer{
 		
 	}
 	
-	private void initialiseQueue() throws DefyndianMQException{
-		logger.info("Consumer declaring exchange - queue [" + exchange + " " + queue + "]");
+	private void initialiseQueue(String routingKeys) throws DefyndianMQException{
+		logger.info("Consumer declaring exchange/queue [" + exchange + "/" + queue + "]");
 		try{
 			getChannel().exchangeDeclare(exchange, "topic", true);
 			getChannel().queueDeclare(queue, true, false, false, null);
+			String[] routingKeysToBind = routingKeys.split(KEY_SEPARATOR);
+			for( String key : routingKeysToBind ){
+				logger.info("Binding queue - ["+exchange + ":" + key + "] -> " + queue);
+				getChannel().queueBind(queue, exchange, key);
+			}
 		} catch( IOException e ){
 			logger.error("Error declaring exchange/queue", e);
 		}

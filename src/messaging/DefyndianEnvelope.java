@@ -10,12 +10,12 @@ public class DefyndianEnvelope {
 		this.message = message;
 	}
 	
-	public DefyndianEnvelope(String exchange, String routingKey, DefyndianMessage message){
+	public DefyndianEnvelope(String exchange, DefyndianRoutingKey routingKey, DefyndianMessage message){
 		this.route = RoutingInfo.getRoute(exchange, routingKey);
 		this.message = message;
 	}
 	
-	public DefyndianEnvelope(String routingKey, DefyndianMessage message){
+	public DefyndianEnvelope(DefyndianRoutingKey routingKey, DefyndianMessage message){
 		this.route = RoutingInfo.getRoute(null, routingKey);
 		this.message = message;
 	}

@@ -6,8 +6,6 @@ import messaging.DefyndianEnvelope;
 import messaging.DefyndianMessage;
 
 public abstract class DefyndianActor extends DefyndianNode {
-
-	private String queue;
 	
 	public DefyndianActor(String name) throws DefyndianMQException, DefyndianDatabaseException {
 		super(name);

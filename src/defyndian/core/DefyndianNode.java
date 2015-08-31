@@ -19,6 +19,9 @@ import exception.DefyndianDatabaseException;
 import exception.DefyndianMQException;
 import messaging.DefyndianEnvelope;
 import messaging.DefyndianMessage;
+import messaging.DefyndianRoutingKey;
+import messaging.DefyndianRoutingType;
+import messaging.RoutingInfo;
 
 public abstract class DefyndianNode {
 
@@ -27,7 +30,7 @@ public abstract class DefyndianNode {
 	private static final long TIMEOUT_SECONDS = 5;
 	private Connection mqConnection;
 	private java.sql.Connection dbConnection;
-	private DefyndianConfig config;
+	protected DefyndianConfig config;
 	
 	protected Logger logger;
 	private boolean STOP = false;
@@ -80,16 +83,20 @@ public abstract class DefyndianNode {
 	}
 	
 	protected void setConsumer() throws DefyndianMQException{
-		setConsumer(config.get(getName()+"."+DefyndianConfig.EXCHANGE_KEY), config.get(getName()+"."+DefyndianConfig.QUEUE_KEY));
+		setConsumer(getConfigValue(DefyndianConfig.EXCHANGE_KEY), getConfigValue(DefyndianConfig.QUEUE_KEY));
 	}
 	
 	protected void setConsumer(String exchange, String queue) throws DefyndianMQException{
 		try {
-			consumer = new Consumer(inbox, mqConnection.createChannel(), exchange, queue, logger);
+			consumer = new Consumer(inbox, mqConnection.createChannel(), exchange, queue, getConfigValue(DefyndianConfig.ROUTING_KEYS), logger);
 			consumer.start(InetAddress.getLocalHost().getHostName() + "-" + getName());
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not create new channel for publishing");
 		}
+	}
+	
+	public String getConfigValue(String key){
+		return config.get(getName() + "." + key);
 	}
 	
 	public String getName(){
@@ -108,12 +115,36 @@ public abstract class DefyndianNode {
 		return inbox.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 	}
 	
-	public void putMessageInOutbox(DefyndianEnvelope envelope){
-		outbox.add(envelope);
+	protected void putMessageInOutbox(DefyndianEnvelope envelope) throws InterruptedException{
+		outbox.put(envelope);
+	}
+	
+	protected void putMessageInOutbox(String exchange, DefyndianRoutingKey routingKey, DefyndianMessage message) throws InterruptedException{
+		putMessageInOutbox(new DefyndianEnvelope(RoutingInfo.getRoute(exchange, routingKey), message));
+	}
+	
+	protected void putMessageInOutbox(DefyndianMessage message) throws InterruptedException{
+		putMessageInOutbox(new DefyndianEnvelope(RoutingInfo.getRoute(	getConfigValue(DefyndianConfig.EXCHANGE_KEY),
+																		makeRoutingKey()
+																	)
+												, message)
+							);
 	}
 	
 	public Iterator<DefyndianEnvelope> getOutboxMessages(){
 		return outbox.iterator();
+	}
+	
+	protected DefyndianRoutingKey makeRoutingKey(DefyndianRoutingType type, String extra){
+		return new DefyndianRoutingKey(getName(), type, extra);
+	}
+	
+	protected DefyndianRoutingKey makeRoutingKey(String extra){
+		return new DefyndianRoutingKey(getName(), DefyndianRoutingType.DEFAULT, extra);
+	}
+	
+	protected DefyndianRoutingKey makeRoutingKey(){
+		return new DefyndianRoutingKey(getName(), DefyndianRoutingType.DEFAULT, "");
 	}
 	
 	private void initialiseQueues(){

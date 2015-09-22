@@ -11,6 +11,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
@@ -23,7 +24,7 @@ import messaging.DefyndianRoutingKey;
 import messaging.DefyndianRoutingType;
 import messaging.RoutingInfo;
 
-public abstract class DefyndianNode {
+public abstract class DefyndianNode implements AutoCloseable{
 
 	private static final int MAX_INBOX_SIZE = 10;
 	private static final int MAX_OUTBOX_SIZE = 5;
@@ -73,7 +74,7 @@ public abstract class DefyndianNode {
 			publisher.setStop();
 	}
 	
-	protected void shutdown() throws DefyndianMQException, DefyndianDatabaseException{
+	public void close() throws DefyndianMQException, DefyndianDatabaseException{
 		if( publisher!=null ){
 			publisher.setStop();
 		}
@@ -102,8 +103,12 @@ public abstract class DefyndianNode {
 	protected void setConsumer() throws DefyndianMQException{
 		String exchange = getConfigValue(DefyndianConfig.EXCHANGE_KEY);
 		String queue = getConfigValue(DefyndianConfig.QUEUE_KEY);
-		if( exchange==null | queue==null ){
-			throw new DefyndianMQException("No exchange or queue specified");
+		logger.debug("Got queue : " + queue + " with key: " + DefyndianConfig.QUEUE_KEY);
+		if( exchange==null ){
+			throw new DefyndianMQException("No exchange specified in config");
+		}
+		if( queue == null ){
+			queue = getName();
 		}
 		setConsumer(exchange, queue);
 	}
@@ -224,11 +229,15 @@ public abstract class DefyndianNode {
 		ConnectionFactory factory = new ConnectionFactory();
 		factory.setAutomaticRecoveryEnabled(true);
 		factory.setUsername(config.get("mq.username"));
-		factory.setPassword(config.get("mq.password"));
 		factory.setVirtualHost(config.get("mq.virtualhost"));
+		factory.setPassword(config.get("mq.password"));
 		factory.setHost(config.get("mq.hostname"));
 		try {
-			return factory.newConnection();
+			Connection c = factory.newConnection();
+			Channel channel = c.createChannel();
+			channel.exchangeDeclare(config.get("mq.exchange"), "topic", true);
+			channel.close();
+			return c;
 		} catch (IOException | TimeoutException e) {
 			logger.error(e);
 			throw new DefyndianMQException(e.getMessage());

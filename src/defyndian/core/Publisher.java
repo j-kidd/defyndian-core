@@ -21,6 +21,8 @@ public class Publisher extends Thread{
 	
 	public Publisher(BlockingQueue<DefyndianEnvelope> messageQueue, Channel channel, Logger logger){
 		super();
+		this.setName("Publisher");
+		setDaemon(true);
 		this.messageQueue = messageQueue;
 		this.channel = channel;
 		this.logger = logger;

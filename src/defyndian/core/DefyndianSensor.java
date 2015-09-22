@@ -9,7 +9,12 @@ public abstract class DefyndianSensor extends DefyndianNode {
 	
 	public DefyndianSensor(String name, int delay) throws DefyndianMQException, DefyndianDatabaseException{
 		super(name);
-		setPublisher();
+		try{
+			setPublisher();
+		} catch ( Exception e ){
+			this.close();
+			throw e;
+		}
 		DELAY = delay;
 	}
 	
@@ -33,7 +38,7 @@ public abstract class DefyndianSensor extends DefyndianNode {
 				Thread.sleep(DELAY*1000);
 			}
 		}
-		shutdown();
+		close();
 	}
 
 }

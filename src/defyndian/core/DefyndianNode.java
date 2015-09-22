@@ -24,6 +24,13 @@ import messaging.DefyndianRoutingKey;
 import messaging.DefyndianRoutingType;
 import messaging.RoutingInfo;
 
+/**
+ * This is the base class for all components of the system, it contains the Inbox/Outbox 
+ * structures and the ability to start a publisher or consumer. It manages the MQ and DB
+ * connections, logger and config.
+ * @author james
+ *
+ */
 public abstract class DefyndianNode implements AutoCloseable{
 
 	private static final int MAX_INBOX_SIZE = 10;
@@ -42,6 +49,13 @@ public abstract class DefyndianNode implements AutoCloseable{
 	
 	private String name;
 	
+	/**
+	 * The constructor initialises all managed resources and declares the
+	 * queues/exchanges from the config
+	 * @param name
+	 * @throws DefyndianMQException If the MQConnection could not be initialised
+	 * @throws DefyndianDatabaseException If the DBConnection could not be initialised
+	 */
 	public DefyndianNode(String name) throws DefyndianMQException, DefyndianDatabaseException{
 		this.name = name;
 		logger = Logger.getLogger(name);
@@ -52,29 +66,57 @@ public abstract class DefyndianNode implements AutoCloseable{
 		initialiseQueues();
 	}
 	
-	protected boolean topShouldExit(){
+	/**
+	 * Main method used to decide if a node should exit, it checks for the 
+	 * STOP value being set and then uses the overridable shouldExit method
+	 * to ultimately determine if exit is necessary
+	 * @return True if should exit
+	 */
+	protected final boolean topShouldExit(){
 		if( STOP==true )
 			return true;
 		else
 			return shouldExit();
 	}
 	
+	/**
+	 * Provided method to allow subclasses to setup additional resources before the 
+	 * start method is called, default is to log that no setup was performed
+	 */
 	protected void setup(){
 		logger.info("No setup specified, using default");
 	}
 	
+	/**
+	 * Overridable method used to implement additional exit conditions beyond the STOP
+	 * value being set, defaults to false meaning the STOP mechanism is solely responsible
+	 * for stopping the node.
+	 * @return
+	 */
 	protected boolean shouldExit(){
 		return false;
 	}
 	
+	/**
+	 * Abstract method used to implement the processing of a particular node
+	 * @throws Exception
+	 */
 	public abstract void start() throws Exception;
 	
-	public void stop(){
+	
+	/**
+	 * Used to stop the processing of this node, will shutdown a published if one is present
+	 * meaning no messages are delivered to the system from this node.
+	 */
+	public final void stop(){
 		if( publisher!=null )
 			publisher.setStop();
 	}
 	
-	public void close() throws DefyndianMQException, DefyndianDatabaseException{
+	/**
+	 * Similar to stop but cannot be continued, used to ultimately stop and shutdown this node
+	 */
+	public final void close() throws DefyndianMQException, DefyndianDatabaseException{
 		if( publisher!=null ){
 			publisher.setStop();
 		}
@@ -91,7 +133,11 @@ public abstract class DefyndianNode implements AutoCloseable{
 		}
 	}
 	
-	
+	/**
+	 * Initialises the published for this node, the publisher will read messages from the outbox
+	 * and deliver them to the system
+	 * @throws DefyndianMQException If no new channel could be created within the MQConnection
+	 */
 	protected void setPublisher() throws DefyndianMQException{
 		try {
 			publisher = new Publisher(outbox, mqConnection.createChannel(), logger);
@@ -100,6 +146,11 @@ public abstract class DefyndianNode implements AutoCloseable{
 		}
 	}
 	
+	/**
+	 * Initialises a consumer with the exchange/queue values from the config,
+	 * the consumer will read messages from the MQ Server and deliver them to the inbox
+	 * @throws DefyndianMQException If there is no exchange specified, or a channel could not be created
+	 */
 	protected void setConsumer() throws DefyndianMQException{
 		String exchange = getConfigValue(DefyndianConfig.EXCHANGE_KEY);
 		String queue = getConfigValue(DefyndianConfig.QUEUE_KEY);
@@ -113,6 +164,12 @@ public abstract class DefyndianNode implements AutoCloseable{
 		setConsumer(exchange, queue);
 	}
 	
+	/**
+	 * More specific method to initialised a consumer, though with the same outcome
+	 * @param exchange The exchange to listen on
+	 * @param queue The Queue to listen on
+	 * @throws DefyndianMQException If no channel could be created
+	 */
 	protected void setConsumer(String exchange, String queue) throws DefyndianMQException{
 		try {
 			consumer = new Consumer(inbox, mqConnection.createChannel(), exchange, queue, getConfigValue(DefyndianConfig.ROUTING_KEYS), logger);
@@ -122,6 +179,12 @@ public abstract class DefyndianNode implements AutoCloseable{
 		}
 	}
 	
+	/**
+	 * Checks if the config contains a value for the given key, config accesses within a node are first
+	 * looked for as node specific ie. NODE_NAME.key and then for the default value ie. key
+	 * @param key The key to get
+	 * @return True if there is a value for this key (either node specific or default)
+	 */
 	public boolean hasConfigValue(String key){
 		String value = config.get(getName() + "." + key);
 		if( value!=null ){
@@ -131,6 +194,11 @@ public abstract class DefyndianNode implements AutoCloseable{
 			return config.get(key)!=null;
 	}
 	
+	/**
+	 * Get the value from config, either node-specific of default if none exists
+	 * @param key Key to get
+	 * @return The value from the config, or null if no such key exists
+	 */
 	public String getConfigValue(String key){
 		String value = config.get(getName() + "." + key);
 		if( value==null ){
@@ -139,6 +207,12 @@ public abstract class DefyndianNode implements AutoCloseable{
 		return value;
 	}
 	
+	/**
+	 * As getConfigValue but defaultValue will be returned if no key exists
+	 * @param key The key to get
+	 * @param defaultValue The return value if the key is not found
+	 * @return Either the value of the given key or defaultValue
+	 */
 	public String getConfigValue(String key, String defaultValue){
 		String value = config.get(getName() + "." + key);
 		if( value==null ){
@@ -198,6 +272,9 @@ public abstract class DefyndianNode implements AutoCloseable{
 		return new DefyndianRoutingKey(getName(), DefyndianRoutingType.DEFAULT, "");
 	}
 	
+	/**
+	 * Creates empty or clears the inbox and outbox queues
+	 */
 	private void initialiseQueues(){
 		if( inbox!=null )
 			inbox.clear();
@@ -209,6 +286,11 @@ public abstract class DefyndianNode implements AutoCloseable{
 			outbox = new LinkedBlockingQueue<>(MAX_OUTBOX_SIZE);
 	}
 	
+	/**
+	 * Creates a new DefyndianConfig
+	 * @return A new DefyndianConfig
+	 * @throws DefyndianDatabaseException If there was an error accessing the config database
+	 */
 	private DefyndianConfig initialiseConfig() throws DefyndianDatabaseException{
 		try {
 			return DefyndianConfig.loadConfig();
@@ -217,6 +299,11 @@ public abstract class DefyndianNode implements AutoCloseable{
 		}
 	}
 	
+	/**
+	 * Connect to the database specified in the config
+	 * @return A new database connection
+	 * @throws DefyndianDatabaseException If a connection could not be created
+	 */
 	private java.sql.Connection initialiseDBConnection() throws DefyndianDatabaseException{
 		try {
 			return config.getDatasource().getConnection();
@@ -225,6 +312,12 @@ public abstract class DefyndianNode implements AutoCloseable{
 		}
 	}
 	
+	/**
+	 * Create a new connection to the RabbitMQ Server and declare the exchange specified by
+	 * default values in the config
+	 * @return A new MQConnection
+	 * @throws DefyndianMQException If no new connection could be created
+	 */
 	private Connection initialiseMQConnection() throws DefyndianMQException {
 		ConnectionFactory factory = new ConnectionFactory();
 		factory.setAutomaticRecoveryEnabled(true);

@@ -1,5 +1,6 @@
 package defyndian.core;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.sql.SQLException;
@@ -31,8 +32,10 @@ import messaging.RoutingInfo;
  * @author james
  *
  */
-public abstract class DefyndianNode implements AutoCloseable{
+public abstract class DefyndianNode implements Closeable{
 
+	private static final String DESCRIPTION = "This is a default Defyndian Node description";
+	
 	private static final int MAX_INBOX_SIZE = 10;
 	private static final int MAX_OUTBOX_SIZE = 5;
 	private static final long TIMEOUT_SECONDS = 5;
@@ -116,20 +119,20 @@ public abstract class DefyndianNode implements AutoCloseable{
 	/**
 	 * Similar to stop but cannot be continued, used to ultimately stop and shutdown this node
 	 */
-	public final void close() throws DefyndianMQException, DefyndianDatabaseException{
+	public final void close(){
 		if( publisher!=null ){
 			publisher.setStop();
 		}
 		try{
 			mqConnection.close();
 		} catch( IOException e ){
-			throw new DefyndianMQException("Could not shutdown mq connection: " + e);
+			logger.error("Could not shutdown mq connection: " + e);
 		}
 		
 		try {
 			dbConnection.close();
 		} catch (SQLException e) {
-			throw new DefyndianDatabaseException("Could not shutdown db connection: " + e);
+			logger.error("Could not shutdown db connection: " + e);
 		}
 	}
 	
@@ -265,11 +268,11 @@ public abstract class DefyndianNode implements AutoCloseable{
 	}
 	
 	protected DefyndianRoutingKey makeRoutingKey(String extra){
-		return new DefyndianRoutingKey(getName(), DefyndianRoutingType.DEFAULT, extra);
+		return makeRoutingKey(DefyndianRoutingType.DEFAULT, extra);
 	}
 	
 	protected DefyndianRoutingKey makeRoutingKey(){
-		return new DefyndianRoutingKey(getName(), DefyndianRoutingType.DEFAULT, "");
+		return makeRoutingKey("");
 	}
 	
 	/**

@@ -8,8 +8,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -60,8 +60,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 */
 	public DefyndianNode(String name) throws DefyndianMQException, DefyndianDatabaseException{
 		this.name = name;
-		logger = Logger.getLogger(name);
-		BasicConfigurator.configure();
+		logger = LogManager.getLogger(name);
 		config = initialiseConfig();
 		mqConnection = initialiseMQConnection();
 		dbConnection = initialiseDBConnection();
@@ -90,7 +89,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	}
 	
 	/**
-	 * Overridable method used to implement additional exit conditions beyond the STOP
+	 * Overidable method used to implement additional exit conditions beyond the STOP
 	 * value being set, defaults to false meaning the STOP mechanism is solely responsible
 	 * for stopping the node.
 	 * @return

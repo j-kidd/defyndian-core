@@ -8,8 +8,8 @@ import java.net.SocketException;
 import java.sql.SQLException;
 import java.util.Scanner;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
@@ -24,10 +24,9 @@ public class Lightwaver {
 	private DatagramSocket sendSocket;
 	private int messageID;
 	
-	private static final Logger logger = Logger.getLogger("Lightwaver");
+	private static final Logger logger = LogManager.getLogger("Lightwaver");
 	
 	public Lightwaver(LightwaveLayout layout) throws LightwaverException{
-		BasicConfigurator.configure();
 		this.layout = layout;
 		try {
 			initialiseSockets();

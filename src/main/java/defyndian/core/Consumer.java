@@ -2,18 +2,14 @@ package defyndian.core;
 
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
-import com.rabbitmq.client.GetResponse;
 
 import defyndian.exception.DefyndianMQException;
-import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
 
 public class Consumer extends com.rabbitmq.client.DefaultConsumer{
@@ -54,7 +50,6 @@ public class Consumer extends com.rabbitmq.client.DefaultConsumer{
 			DefyndianMessage message = DefyndianMessage.fromJSONData(body);
 			try{
 				logger.debug(new String(body));
-				logger.debug(message.getExtrasKeys());
 				messageQueue.put(message);
 			} catch( Exception e){
 				logger.error("Error while handling message", e);

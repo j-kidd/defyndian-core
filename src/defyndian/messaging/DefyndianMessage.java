@@ -1,4 +1,4 @@
-package messaging;
+package defyndian.messaging;
 
 import java.time.Instant;
 import java.util.Date;

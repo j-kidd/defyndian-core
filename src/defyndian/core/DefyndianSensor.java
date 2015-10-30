@@ -2,8 +2,8 @@ package defyndian.core;
 
 import java.util.Collection;
 
-import exception.DefyndianDatabaseException;
-import exception.DefyndianMQException;
+import defyndian.exception.DefyndianDatabaseException;
+import defyndian.exception.DefyndianMQException;
 
 public abstract class DefyndianSensor<T> extends DefyndianNode {
 

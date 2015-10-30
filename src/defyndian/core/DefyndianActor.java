@@ -1,9 +1,9 @@
 package defyndian.core;
 
-import exception.DefyndianDatabaseException;
-import exception.DefyndianMQException;
-import messaging.DefyndianEnvelope;
-import messaging.DefyndianMessage;
+import defyndian.exception.DefyndianDatabaseException;
+import defyndian.exception.DefyndianMQException;
+import defyndian.messaging.DefyndianEnvelope;
+import defyndian.messaging.DefyndianMessage;
 
 public abstract class DefyndianActor extends DefyndianNode {
 	

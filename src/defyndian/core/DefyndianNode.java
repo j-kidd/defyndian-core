@@ -1,6 +1,5 @@
 package defyndian.core;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.sql.SQLException;
@@ -17,13 +16,13 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import defyndian.config.DefyndianConfig;
-import exception.DefyndianDatabaseException;
-import exception.DefyndianMQException;
-import messaging.DefyndianEnvelope;
-import messaging.DefyndianMessage;
-import messaging.DefyndianRoutingKey;
-import messaging.DefyndianRoutingType;
-import messaging.RoutingInfo;
+import defyndian.exception.DefyndianDatabaseException;
+import defyndian.exception.DefyndianMQException;
+import defyndian.messaging.DefyndianEnvelope;
+import defyndian.messaging.DefyndianMessage;
+import defyndian.messaging.DefyndianRoutingKey;
+import defyndian.messaging.DefyndianRoutingType;
+import defyndian.messaging.RoutingInfo;
 
 /**
  * This is the base class for all components of the system, it contains the Inbox/Outbox 
@@ -32,7 +31,7 @@ import messaging.RoutingInfo;
  * @author james
  *
  */
-public abstract class DefyndianNode implements Closeable{
+public abstract class DefyndianNode implements AutoCloseable{
 
 	private static final String DESCRIPTION = "This is a default Defyndian Node description";
 	

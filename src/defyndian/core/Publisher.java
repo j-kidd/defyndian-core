@@ -9,8 +9,8 @@ import org.apache.log4j.Logger;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
-import messaging.DefyndianEnvelope;
-import messaging.DefyndianMessage;
+import defyndian.messaging.DefyndianEnvelope;
+import defyndian.messaging.DefyndianMessage;
 
 public class Publisher extends Thread{
 

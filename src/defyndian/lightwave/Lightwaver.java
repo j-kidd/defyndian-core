@@ -1,4 +1,4 @@
-package lightwave;
+package defyndian.lightwave;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
-import structure.Room;
+import defyndian.lightwave.structure.Room;
 
 public class Lightwaver {
 	

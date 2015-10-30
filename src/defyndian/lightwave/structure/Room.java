@@ -1,4 +1,4 @@
-package structure;
+package defyndian.lightwave.structure;
 
 import java.util.Collection;
 import java.util.HashMap;

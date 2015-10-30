@@ -1,4 +1,4 @@
-package lightwave;
+package defyndian.lightwave;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -8,8 +8,8 @@ import java.util.HashMap;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
-import structure.Device;
-import structure.Room;
+import defyndian.lightwave.structure.Device;
+import defyndian.lightwave.structure.Room;
 
 public class LightwaveLayout {
 

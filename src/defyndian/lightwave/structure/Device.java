@@ -1,4 +1,4 @@
-package structure;
+package defyndian.lightwave.structure;
 
 public class Device {
 

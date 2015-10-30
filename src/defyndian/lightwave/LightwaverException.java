@@ -1,4 +1,4 @@
-package lightwave;
+package defyndian.lightwave;
 
 public class LightwaverException extends Exception{
 

@@ -12,9 +12,9 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
 
-import exception.DefyndianMQException;
-import messaging.DefyndianEnvelope;
-import messaging.DefyndianMessage;
+import defyndian.exception.DefyndianMQException;
+import defyndian.messaging.DefyndianEnvelope;
+import defyndian.messaging.DefyndianMessage;
 
 public class Consumer extends com.rabbitmq.client.DefaultConsumer{
 

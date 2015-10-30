@@ -1,4 +1,4 @@
-package messaging;
+package defyndian.messaging;
 
 public class DefyndianRoutingKey {
 

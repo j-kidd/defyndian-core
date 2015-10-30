@@ -5,10 +5,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import exception.DefyndianDatabaseException;
-import exception.DefyndianMQException;
-import messaging.DefyndianEnvelope;
-import messaging.DefyndianMessage;
+import defyndian.exception.DefyndianDatabaseException;
+import defyndian.exception.DefyndianMQException;
+import defyndian.messaging.DefyndianEnvelope;
+import defyndian.messaging.DefyndianMessage;
 
 public abstract class DefyndianBot extends DefyndianNode{
 

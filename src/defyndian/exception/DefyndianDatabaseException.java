@@ -1,4 +1,4 @@
-package exception;
+package defyndian.exception;
 
 public class DefyndianDatabaseException extends Exception {
 

@@ -49,7 +49,10 @@ public class DefyndianConfig {
 	
 	private static void loadLocalProperties() throws FileNotFoundException, IOException{
 		Properties localConfig = new Properties();
-		localConfig.load(new BufferedReader( new FileReader( BASE_CONFIG_FILE )));
+		if( BASE_CONFIG_FILE.exists() )
+			localConfig.load(new BufferedReader( new FileReader( BASE_CONFIG_FILE )));
+		else
+			localConfig.load(DefyndianConfig.class.getResourceAsStream("/defyndian.conf"));
 		MysqlDataSource newDatasource = new MysqlDataSource();
 		String host = localConfig.getProperty(HOST_KEY);
 		String username = localConfig.getProperty(USERNAME_KEY);

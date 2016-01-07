@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
@@ -26,11 +27,11 @@ public class DefyndianConfig {
 	public static final String ROUTING_KEYS = "routingkeys";
 	
 	private static final File BASE_CONFIG_FILE = new File("/usr/local/etc/defyndian/defyndian.conf");
-	private HashMap<String, String> config;
+	private Map<String, String> config;
 	
 	private static MysqlDataSource datasource;
 	
-	public DefyndianConfig(HashMap<String, String> c) throws SQLException, FileNotFoundException, IOException{
+	public DefyndianConfig(Map<String, String> c) throws SQLException, FileNotFoundException, IOException{
 		config = c;
 	}
 	
@@ -67,14 +68,10 @@ public class DefyndianConfig {
 	}
 	
 	public static DefyndianConfig loadConfig() throws SQLException, FileNotFoundException, IOException{
-		HashMap<String, String> config = new HashMap<>();
+		Map<String, String> config = new HashMap<>();
 		loadLocalProperties();
 		
-		for( HashMap<String, String> row : DatabaseUtil.getDatabaseConfig(datasource) ){
-			String key = row.get(DatabaseUtil.KEY_KEY);
-			String value = row.get(DatabaseUtil.VALUE_KEY);
-			config.put(key,  value);
-			}
+		config = DatabaseUtil.getDatabaseConfig(datasource);
 		
 		return new DefyndianConfig(config);
 	}

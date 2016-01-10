@@ -21,7 +21,6 @@ public abstract class DefyndianActor extends DefyndianNode {
 			this.close();
 			throw e;
 		}
-		
 	}
 
 	/**

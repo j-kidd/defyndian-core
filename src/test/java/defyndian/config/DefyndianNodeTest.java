@@ -29,4 +29,6 @@ public class DefyndianNodeTest {
 		assert config.get(TEST_CONFIG_KEY).equals(TEST_CONFIG_VALUE);
 		assert config.get(null, TEST_CONFIG_DEFAULT_VALUE).equals(TEST_CONFIG_DEFAULT_VALUE);
 	}
+	
+	
 }

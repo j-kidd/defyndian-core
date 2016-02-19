@@ -36,6 +36,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 
 	private static final String DESCRIPTION = "This is a default Defyndian Node description";
 	
+	private static final String BASE_LOGGER_NAME = "Defyndian";
 	private static final int MAX_INBOX_SIZE = 10;
 	private static final int MAX_OUTBOX_SIZE = 5;
 	private static final long TIMEOUT_SECONDS = 5;
@@ -45,7 +46,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	
 	protected Logger logger;
 	private boolean STOP = false;
-	private LinkedBlockingQueue<DefyndianMessage> inbox;
+	private LinkedBlockingQueue<DefyndianEnvelope> inbox;
 	private LinkedBlockingQueue<DefyndianEnvelope> outbox;
 	protected Publisher publisher;
 	protected Consumer consumer;
@@ -61,7 +62,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 */
 	public DefyndianNode(String name) throws DefyndianMQException, DefyndianDatabaseException{
 		this.name = name;
-		logger = LogManager.getLogger(name);
+		logger = LogManager.getLogger(BASE_LOGGER_NAME+"."+name);
 		config = initialiseConfig();
 		mqConnection = initialiseMQConnection();
 		dbConnection = initialiseDBConnection();
@@ -238,7 +239,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 		return dbConnection;
 	}
 	
-	public DefyndianMessage getMessageFromInbox() throws InterruptedException{
+	public DefyndianEnvelope getMessageFromInbox() throws InterruptedException{
 		return inbox.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 	}
 	

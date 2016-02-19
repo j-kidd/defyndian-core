@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,10 +22,10 @@ import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
 public class DefyndianConfig {
 
-	public static final String HOST_KEY = "host";
-	public static final String USERNAME_KEY = "username";
-	public static final String PASSWORD_KEY = "password";
-	public static final String DATABASE_KEY = "database";
+	public static final String HOST_KEY = "db.host";
+	public static final String USERNAME_KEY = "db.username";
+	public static final String PASSWORD_KEY = "db.password";
+	public static final String DATABASE_KEY = "db.database";
 	
 	public static final String EXCHANGE_KEY = "mq.exchange";
 	public static final String QUEUE_KEY = "mq.queue";
@@ -34,7 +35,8 @@ public class DefyndianConfig {
 	public static final String KEY_KEY = "configKey";
 	public static final String VALUE_KEY = "configValue";
 	
-	private static final File BASE_CONFIG_FILE = new File("/usr/local/etc/defyndian/defyndian.conf");
+	private static final String CONFIG_PROPERTIES = "defyndian.conf";
+	//private static final File BASE_CONFIG_FILE = new File("/usr/local/etc/defyndian/defyndian.conf");
 	private Map<String, String> config;
 	
 	private static MysqlDataSource datasource;
@@ -58,7 +60,7 @@ public class DefyndianConfig {
 	
 	private static DataSource loadDatasourceFromLocalProperties() throws FileNotFoundException, IOException{
 		Properties localConfig = new Properties();
-		localConfig.load(new BufferedReader( new FileReader( BASE_CONFIG_FILE )));
+		localConfig.load(new BufferedReader(new InputStreamReader(DefyndianConfig.class.getClassLoader().getResourceAsStream(CONFIG_PROPERTIES))));
 		MysqlDataSource newDatasource = new MysqlDataSource();
 		newDatasource.setServerName(localConfig.getProperty(HOST_KEY));
 		newDatasource.setUser(localConfig.getProperty(USERNAME_KEY));
@@ -67,8 +69,13 @@ public class DefyndianConfig {
 		return newDatasource;
 	}
 	
-	public MysqlDataSource getDatasource(){
-		return datasource;
+	public DataSource getDatasource(){
+		MysqlDataSource newDatasource = new MysqlDataSource();
+		newDatasource.setServerName(get(HOST_KEY));
+		newDatasource.setUser(get(USERNAME_KEY));
+		newDatasource.setPassword(get(PASSWORD_KEY));
+		newDatasource.setDatabaseName(get(DATABASE_KEY));
+		return newDatasource;
 	}
 	
 	public static DefyndianConfig loadConfig() throws SQLException, FileNotFoundException, IOException{

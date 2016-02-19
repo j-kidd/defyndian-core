@@ -1,5 +1,7 @@
 package defyndian.core;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,6 +14,8 @@ import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.BasicDefyndianMessage;
 
 public abstract class DefyndianBot extends DefyndianNode{
+
+	private static final String MESSAGE_HANDLER_METHOD_NAME = null;
 
 	/**
 	 * DefyndianNode with both a publisher and consumer
@@ -35,11 +39,23 @@ public abstract class DefyndianBot extends DefyndianNode{
 	 * @throws InterruptedException If no message is read from the inbox in the timeout period
 	 */
 	protected Collection<DefyndianEnvelope> tryToProcessAMessage() throws InterruptedException{
-		DefyndianMessage message = getMessageFromInbox();
-		if( message != null )  // Null is returned on timeout
-			return handleMessage(message);
-		else
-			return Collections.emptyList();
+		DefyndianEnvelope envelope = getMessageFromInbox();
+
+		if( envelope != null ){  // Null is returned on timeout
+			try{
+				Method messageHandler = envelope.getMessageClass().getMethod(MESSAGE_HANDLER_METHOD_NAME, envelope.getMessageClass());
+				return (Collection<DefyndianEnvelope>) messageHandler.invoke(envelope.getMessage());
+			} catch( NoSuchMethodException e){
+				logger.warn("No message handler for message type: " + envelope.getMessageClass());
+			} catch (IllegalAccessException e) {
+				logger.error("Couldn't call handler method for message (Illegal access): " + envelope.getMessageClass());
+			} catch (IllegalArgumentException e) {
+				logger.error("Couldn't call handler method for message (Illegal argument): " + envelope.getMessageClass());
+			} catch (InvocationTargetException e) {
+				logger.error("Couldn't call handler method for message (Invocation Target): " + envelope.getMessageClass());
+			}
+		}
+		return Collections.emptyList();
 	}
 	
 	/**

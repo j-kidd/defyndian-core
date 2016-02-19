@@ -6,26 +6,30 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class DefyndianEnvelope<M extends DefyndianMessage> {
 
 	private RoutingInfo route;
+	private Class messageClass;
 	private M message;
 	
 	@JsonCreator
-	public DefyndianEnvelope(@JsonProperty RoutingInfo route, @JsonProperty M message){
+	public DefyndianEnvelope(@JsonProperty("route") RoutingInfo route, @JsonProperty("message") M message){
 		this.route = route;
 		this.message = message;
+		messageClass = message.getClass();
 	}
 	
 	public DefyndianEnvelope(String exchange, DefyndianRoutingKey routingKey, M message){
-		this.route = RoutingInfo.getRoute(exchange, routingKey);
-		this.message = message;
+		this(RoutingInfo.getRoute(exchange, routingKey), message);
 	}
 	
 	public DefyndianEnvelope(DefyndianRoutingKey routingKey, M message){
-		this.route = RoutingInfo.getRoute(null, routingKey);
-		this.message = message;
+		this(RoutingInfo.getRoute(null, routingKey), message);
 	}
 	
 	public M getMessage(){
 		return message;
+	}
+	
+	public Class getMessageClass(){
+		return messageClass;
 	}
 	
 	public RoutingInfo getRoute(){

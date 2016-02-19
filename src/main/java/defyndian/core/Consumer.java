@@ -22,12 +22,12 @@ public class Consumer extends DefaultConsumer{
 	private static final String KEY_SEPARATOR = ",";
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 	
-	private BlockingQueue<DefyndianMessage> messageQueue;
+	private BlockingQueue<DefyndianEnvelope> messageQueue;
 	private String exchange;
 	private String queue;
 	
 	
-	public Consumer(	BlockingQueue<DefyndianMessage> messageQueue, 
+	public Consumer(	BlockingQueue<DefyndianEnvelope> messageQueue, 
 						Channel channel, 
 						String exchange, 
 						String queue,
@@ -57,7 +57,7 @@ public class Consumer extends DefaultConsumer{
 			DefyndianEnvelope defyndianEnvelope = objectMapper.readValue(body, DefyndianEnvelope.class);
 			try{
 				logger.debug(new String(body));
-				messageQueue.put(defyndianEnvelope.getMessage());
+				messageQueue.put(defyndianEnvelope);
 			} catch( Exception e){
 				logger.error("Error while handling message", e);
 			}

@@ -10,7 +10,7 @@ public class RoutingInfo {
 	private final String exchange;
 	
 	@JsonCreator
-	public RoutingInfo(@JsonProperty String exchange, @JsonProperty DefyndianRoutingKey routingKey) {
+	public RoutingInfo(@JsonProperty("exchange") String exchange, @JsonProperty("routingKey") DefyndianRoutingKey routingKey) {
 		this.routingKey = routingKey;
 		this.exchange = exchange;
 	}
@@ -31,6 +31,10 @@ public class RoutingInfo {
 	public static RoutingInfo getRoute(String exchange, DefyndianRoutingKey routingKey){
 		String actualExchange = exchange==null ? DEFAULT_EXCHANGE : exchange;
 		return new RoutingInfo(actualExchange, routingKey);
+	}
+	
+	public String toString(){
+		return "{ " + exchange + " " + routingKey + " }";
 	}
 	
 }

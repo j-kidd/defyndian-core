@@ -1,6 +1,7 @@
 package defyndian.messaging;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,23 +16,25 @@ public class BasicDefyndianMessage implements DefyndianMessage {
 	private final LocalDateTime timestamp;
 	private final String message;
 	
-	
-	@JsonCreator
-	public BasicDefyndianMessage( @JsonProperty String body) {
-		this(LocalDateTime.now(), body);
+	public BasicDefyndianMessage(String body ) {
+		this(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC), body);
 	}
 	
-	public BasicDefyndianMessage(LocalDateTime datetime, String data) {
+	@JsonCreator
+	public BasicDefyndianMessage(@JsonProperty("timestamp") long epochSeconds, @JsonProperty("message") String data) {
 		message = data;
-		timestamp = datetime;
+		timestamp = LocalDateTime.ofEpochSecond(epochSeconds, 0, ZoneOffset.UTC);
 	}
 	
 	public String getMessage(){
 		return message;
 	}
 	
-	@Override
-	public LocalDateTime getTimestamp() {
-		return timestamp;
+	public long getTimestamp() {
+		return timestamp.toEpochSecond(ZoneOffset.UTC);
+	}
+	
+	public String toString(){
+		return "{ " + timestamp + " - " + message + " }";
 	}
 }

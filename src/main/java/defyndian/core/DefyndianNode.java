@@ -20,6 +20,7 @@ import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
 import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
+import defyndian.messaging.BasicDefyndianMessage;
 import defyndian.messaging.DefyndianRoutingKey;
 import defyndian.messaging.DefyndianRoutingType;
 import defyndian.messaging.RoutingInfo;

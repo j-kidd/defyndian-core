@@ -6,18 +6,23 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
 import defyndian.messaging.DefyndianEnvelope;
-import defyndian.messaging.DefyndianMessage;
+import defyndian.messaging.BasicDefyndianMessage;
 
 public class Publisher extends Thread{
 
+	private final Logger logger;
+	
 	private BlockingQueue<DefyndianEnvelope> messageQueue;
 	private Channel channel;
+	private static final ObjectMapper objectMapper = new ObjectMapper();
+	
 	private boolean STOP;
-	private final Logger logger;
+	
 	
 	public Publisher(BlockingQueue<DefyndianEnvelope> messageQueue, Channel channel, Logger logger){
 		super();
@@ -48,9 +53,9 @@ public class Publisher extends Thread{
 			}
 			try {
 				logger.debug("Publishing message to [ " + envelope.getRoute().getExchange()+":"+envelope.getRoute().getRoutingKey()+" ]");
-				channel.basicPublish(envelope.getRoute().getExchange(), envelope.getRoute().getRoutingKey().toString(), null, envelope.getMessage().toJSONString().getBytes());
+				channel.basicPublish(envelope.getRoute().getExchange(), envelope.getRoute().getRoutingKey().toString(), null, objectMapper.writeValueAsBytes(envelope));
 			} catch (IOException e) {
-				logger.error("Could not publish message: " + new String(envelope.getMessage().getMessageBody()));
+				logger.error("Could not publish message: " + envelope);
 			}
 		}
 	}

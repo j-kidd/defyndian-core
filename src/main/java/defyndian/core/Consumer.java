@@ -5,20 +5,27 @@ import java.util.concurrent.BlockingQueue;
 
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import defyndian.exception.DefyndianMQException;
+import defyndian.messaging.BasicDefyndianMessage;
+import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
 
-public class Consumer extends com.rabbitmq.client.DefaultConsumer{
-
+public class Consumer extends DefaultConsumer{
+	
+	private final Logger logger;
 	private static final String KEY_SEPARATOR = ",";
+	private static final ObjectMapper objectMapper = new ObjectMapper();
+	
 	private BlockingQueue<DefyndianMessage> messageQueue;
 	private String exchange;
 	private String queue;
-	private final Logger logger;
+	
 	
 	public Consumer(	BlockingQueue<DefyndianMessage> messageQueue, 
 						Channel channel, 
@@ -47,10 +54,10 @@ public class Consumer extends com.rabbitmq.client.DefaultConsumer{
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body){
 		try{
-			DefyndianMessage message = DefyndianMessage.fromJSONData(body);
+			DefyndianEnvelope defyndianEnvelope = objectMapper.readValue(body, DefyndianEnvelope.class);
 			try{
 				logger.debug(new String(body));
-				messageQueue.put(message);
+				messageQueue.put(defyndianEnvelope.getMessage());
 			} catch( Exception e){
 				logger.error("Error while handling message", e);
 			}

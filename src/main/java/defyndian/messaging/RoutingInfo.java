@@ -1,12 +1,16 @@
 package defyndian.messaging;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class RoutingInfo {
 
 	private static final String DEFAULT_EXCHANGE = "";
 	private final DefyndianRoutingKey routingKey;
 	private final String exchange;
 	
-	public RoutingInfo(String exchange, DefyndianRoutingKey routingKey) {
+	@JsonCreator
+	public RoutingInfo(@JsonProperty String exchange, @JsonProperty DefyndianRoutingKey routingKey) {
 		this.routingKey = routingKey;
 		this.exchange = exchange;
 	}

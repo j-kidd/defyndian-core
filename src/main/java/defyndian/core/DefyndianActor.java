@@ -4,6 +4,7 @@ import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
 import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
+import defyndian.messaging.BasicDefyndianMessage;
 
 public abstract class DefyndianActor extends DefyndianNode {
 	

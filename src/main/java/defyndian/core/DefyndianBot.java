@@ -13,25 +13,27 @@ import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.BasicDefyndianMessage;
 
+/**
+ * A DefyndianBot represents a Node which has both publish and consume capabilities
+ * it processes an incoming message and produces a collection of messages for publishing
+ * as a result
+ * @author james
+ *
+ */
 public abstract class DefyndianBot extends DefyndianNode{
 
 	private static final String MESSAGE_HANDLER_METHOD_NAME = null;
 
 	/**
 	 * DefyndianNode with both a publisher and consumer
-	 * @param name
-	 * @throws DefyndianMQException
-	 * @throws DefyndianDatabaseException
+	 * @param name Name of this bot
+	 * @throws DefyndianMQException If there is an AMQPException while connecting to the broker
+	 * @throws DefyndianDatabaseException If there is an error connecting to the database
 	 */
 	public DefyndianBot(String name) throws DefyndianMQException, DefyndianDatabaseException {
 		super(name);
-		try{
-			setPublisher();
-			setConsumer();
-		} catch( Exception e){
-			this.close();
-			throw e;
-		}
+		setPublisher();
+		setConsumer();
 	}
 
 	/**
@@ -64,6 +66,11 @@ public abstract class DefyndianBot extends DefyndianNode{
 	*/
 	protected abstract Collection<DefyndianEnvelope> handleMessage(DefyndianMessage message);
 	
+	/**
+	 * Starts the bot, setup is done then while exit isn't signalled, 
+	 * each message produced by tryToProcessAMessage is placed in the outbox
+	 * @throws Exception If setup throws an exception
+	 */
 	@Override
 	public void start() throws Exception {
 		logger.info(getName() + " started");

@@ -94,7 +94,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * Overidable method used to implement additional exit conditions beyond the STOP
 	 * value being set, defaults to false meaning the STOP mechanism is solely responsible
 	 * for stopping the node.
-	 * @return
+	 * @return True if the node should exit
 	 */
 	protected boolean shouldExit(){
 		return false;

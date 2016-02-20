@@ -12,10 +12,17 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import defyndian.exception.DefyndianMQException;
-import defyndian.messaging.BasicDefyndianMessage;
 import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
 
+/**
+ * A Consumer run Asynchronously for each Sensor; it manages the inbox by
+ * reading messages from the broker and providing them to the Node.
+ * No direct interaction with the consumer is required, the Node class
+ * manages the lifecycle.
+ * @author james
+ *
+ */
 public class Consumer extends DefaultConsumer{
 	
 	private final Logger logger;
@@ -26,7 +33,16 @@ public class Consumer extends DefaultConsumer{
 	private String exchange;
 	private String queue;
 	
-	
+	/**
+	 * Fully specified constructor for a new consumer
+	 * @param messageQueue The Queue messages are placed in after being retrieved over AMQP
+	 * @param channel The AMQP channel to use
+	 * @param exchange The Exchange to make bindings with
+	 * @param queue The Queue to consume on
+	 * @param routingKeys The routingkeys to bind the queue with
+	 * @param logger The Logger to use
+	 * @throws DefyndianMQException If an exception occurs during setup of the AMQP connection
+	 */
 	public Consumer(	BlockingQueue<DefyndianEnvelope> messageQueue, 
 						Channel channel, 
 						String exchange, 
@@ -42,6 +58,12 @@ public class Consumer extends DefaultConsumer{
 		logger.info("Consumer created: " + exchange + " " + queue);
 	}
 	
+	/**
+	 * Start the consumer, this starts the consumption of messages and the consumer
+	 * will begin placing messages in the inbox
+	 * @param consumerTag The AMQP consumer tag, that the broker recognises this consumer by
+	 * @throws DefyndianMQException If an exception prevents consumption
+	 */
 	public void start(String consumerTag) throws DefyndianMQException{
 		try {
 			logger.info("Beginning to consume " + consumerTag + " " + queue);
@@ -51,10 +73,14 @@ public class Consumer extends DefaultConsumer{
 		}
 	}
 	
+	/**
+	 * Called when a message is received, the DefyndianEnvelope is mapped from the JSON and placed in the 
+	 * message queue
+	 */
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body){
 		try{
-			DefyndianEnvelope defyndianEnvelope = objectMapper.readValue(body, DefyndianEnvelope.class);
+			DefyndianEnvelope<DefyndianMessage> defyndianEnvelope = objectMapper.readValue(body, DefyndianEnvelope.class);
 			try{
 				logger.debug(new String(body));
 				messageQueue.put(defyndianEnvelope);
@@ -67,6 +93,11 @@ public class Consumer extends DefaultConsumer{
 		
 	}
 	
+	/**
+	 * Sets up the queue and exchange with any bindings specified
+	 * @param routingKeys The RoutingKeys to bind to the given queue
+	 * @throws DefyndianMQException If no routing keys are specified
+	 */
 	private void initialiseQueue(String routingKeys) throws DefyndianMQException{
 		logger.info("Consumer declaring exchange/queue [" + exchange + "/" + queue + "]");
 		try{

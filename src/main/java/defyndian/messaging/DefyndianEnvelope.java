@@ -3,6 +3,13 @@ package defyndian.messaging;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * An Envelope wraps a DefyndianMessage in transit to provide routing information and info
+ * on the type of the message contained
+ * @author james
+ *
+ * @param <M> The type of the message contained
+ */
 public class DefyndianEnvelope<M extends DefyndianMessage> {
 
 	private RoutingInfo route;

@@ -331,6 +331,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 		try {
 			Connection c = factory.newConnection();
 			Channel channel = c.createChannel();
+			logger.info("Declaring exchange: " + config.get("mq.exchange"));
 			channel.exchangeDeclare(config.get("mq.exchange"), "topic", true);
 			channel.close();
 			return c;

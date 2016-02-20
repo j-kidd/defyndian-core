@@ -8,4 +8,5 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 public interface DefyndianMessage {
 
 	public long getTimestamp();
+
 }

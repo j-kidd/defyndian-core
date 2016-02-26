@@ -1,125 +1,102 @@
 package defyndian.config;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collection;
 import java.util.Properties;
 
 import javax.sql.DataSource;
 
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import defyndian.exception.ConfigInitialisationException;
 
-public class DefyndianConfig {
+/**
+ * Super class for all config classes, subclasses should implement
+ * the backing behaviour of this class to provide an actual config.
+ * Keys are stored in a namespace, nodes look up
+ * keys in their own namespace and then in the global namespace; all 
+ * values added to the config are added under the nodes namespace.
+ * All values are non-null.
+ * @author james
+ *
+ */
+public abstract class DefyndianConfig {
 
-	public static final String HOST_KEY = "db.host";
-	public static final String USERNAME_KEY = "db.username";
-	public static final String PASSWORD_KEY = "db.password";
-	public static final String DATABASE_KEY = "db.database";
-	
-	public static final String EXCHANGE_KEY = "mq.exchange";
-	public static final String QUEUE_KEY = "mq.queue";
-	public static final String ROUTING_KEYS = "routingkeys";
-	
-	public static final String SECTION_KEY = "section";
-	public static final String KEY_KEY = "configKey";
-	public static final String VALUE_KEY = "configValue";
-	
+	private static final String DEFAULT_CONFIG_TYPE = ConfigType.BASIC.toString();
 	private static final String CONFIG_PROPERTIES = "defyndian.conf";
-	//private static final File BASE_CONFIG_FILE = new File("/usr/local/etc/defyndian/defyndian.conf");
-	private Map<String, String> config;
+	private static final String CONFIG_TYPE_KEY = "config.type";
+	private static Properties conf;
 	
-	private static MysqlDataSource datasource;
+	private final String name;
 	
-	public DefyndianConfig(Map<String, String> c) throws SQLException, FileNotFoundException, IOException{
-		config = c;
+	protected DefyndianConfig(String name){
+		this.name = name;
 	}
 	
-	public String get(String key){
-		return config.get(key);
-	}
-	
-	public String get(String key, String defaultValue){
-		String value = config.get(key);
-		if( value==null ){
-			return defaultValue;
+	public static DefyndianConfig getConfig(String name) throws ConfigInitialisationException{
+		conf = new Properties();
+		try{
+			conf.load(new BufferedReader(new InputStreamReader(DefyndianConfig.class.getClassLoader().getResourceAsStream(CONFIG_PROPERTIES))));
+		} catch( IOException e){
+			throw new ConfigInitialisationException(e);
 		}
-		else
-			return value;
+		return ConfigType.valueOf(conf.getProperty(CONFIG_TYPE_KEY, DEFAULT_CONFIG_TYPE)).getConfig(name);
+	}
+	/**
+	 * Retrieve the value for this key
+	 * @param key String value of the key to get
+	 * @return The value for this key, or null if no mapping for this key exists
+	 */
+	public abstract String get(String key);
+	
+	/**
+	 * Retrieve the value for this key, obeying namespace
+	 * rules but returning the given default value if no
+	 * mapping exists
+	 * @param key Key to retrieve value for
+	 * @param defaultValue Value to return if no key in config
+	 * @return The value for the given key, or defaultValue if no such value exists
+	 */
+	public abstract String get(String key, String defaultValue);
+	
+	/**
+	 * Add this mapping to the namespace of this node, it will only be available
+	 * to this node
+	 * @param key 
+	 * @param value 
+	 */
+	public abstract void put(String key, String value);
+
+	/**
+	 * This method is used by Nodes to determine the details of the
+	 * AMQP broker
+	 * @return A RabbitMQDetails object containing the node or global 
+	 * specs of the broker
+	 */
+	public abstract RabbitMQDetails getRabbitMQDetails();
+	
+	/**
+	 * Returns the datasource to use for the main database used by nodes
+	 * @return A datasource from node ofr global namespace to connect
+	 * to the main database on
+	 */
+	public abstract DataSource getDataSource();
+	
+	/**
+	 * Method to persist inserted values to backing store
+	 */
+	public abstract void save();
+	
+	public abstract Collection<String> getRoutingKeys();
+	
+	protected final String getName(){
+		return name;
 	}
 	
-	private static DataSource loadDatasourceFromLocalProperties() throws FileNotFoundException, IOException{
-		Properties localConfig = new Properties();
-		localConfig.load(new BufferedReader(new InputStreamReader(DefyndianConfig.class.getClassLoader().getResourceAsStream(CONFIG_PROPERTIES))));
-		MysqlDataSource newDatasource = new MysqlDataSource();
-		newDatasource.setServerName(localConfig.getProperty(HOST_KEY));
-		newDatasource.setUser(localConfig.getProperty(USERNAME_KEY));
-		newDatasource.setPassword(localConfig.getProperty(PASSWORD_KEY));
-		newDatasource.setDatabaseName(localConfig.getProperty(DATABASE_KEY));
-		return newDatasource;
+	public String getFromLocal(String key){
+		return conf.getProperty(key);
 	}
 	
-	public DataSource getDatasource(){
-		MysqlDataSource newDatasource = new MysqlDataSource();
-		newDatasource.setServerName(get(HOST_KEY));
-		newDatasource.setUser(get(USERNAME_KEY));
-		newDatasource.setPassword(get(PASSWORD_KEY));
-		newDatasource.setDatabaseName(get(DATABASE_KEY));
-		return newDatasource;
-	}
-	
-	public static DefyndianConfig loadConfig() throws SQLException, FileNotFoundException, IOException{
-		Map<String, String> config = new HashMap<>();
-		config = getDatabaseConfig(loadDatasourceFromLocalProperties());
-		return new DefyndianConfig(config);
-	}
-	
-	private static final Map<String, String> getDatabaseConfig(DataSource datasource) throws SQLException{
-		HashMap<String, String> conf = new HashMap<>();
-		Connection connection = datasource.getConnection();
-		
-		PreparedStatement statement = connection.prepareCall("call getConfig()");
-		ResultSet results = statement.executeQuery();
-		while( results.next() ){
-			conf.put(results.getString(KEY_KEY), results.getString(VALUE_KEY));
-		}
-		return conf;
-	}
-	
-	public String toString(){
-		if( config==null ){
-			return "[CONFIG UNINITIALISED]";
-		}
-		StringBuilder builder = new StringBuilder();
-		ArrayList<String> configKeys = new ArrayList<>(config.keySet());
-		Collections.sort(configKeys);
-		for( String key :  configKeys){
-			builder.append(key + " : " + get(key));
-			builder.append(System.lineSeparator());
-		}
-		return builder.toString();
-	}
-	
-	public static void main(String...args){
-		try {
-			System.out.println(DefyndianConfig.loadConfig());
-		} catch (SQLException e) {
-			System.err.println(e);
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 }
+	
+	

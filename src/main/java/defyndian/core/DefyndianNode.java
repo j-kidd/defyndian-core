@@ -8,6 +8,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.sql.DataSource;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,8 +18,12 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import defyndian.config.DefyndianConfig;
+import defyndian.config.MysqlConfig;
+import defyndian.config.RabbitMQDetails;
+import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
+import defyndian.exception.MalformedConfigFileException;
 import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.BasicDefyndianMessage;
@@ -59,14 +65,16 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * @param name
 	 * @throws DefyndianMQException If the MQConnection could not be initialised
 	 * @throws DefyndianDatabaseException If the DBConnection could not be initialised
+	 * @throws ConfigInitialisationException 
 	 */
-	public DefyndianNode(String name) throws DefyndianMQException, DefyndianDatabaseException{
+	public DefyndianNode(String name) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException{
 		this.name = name;
 		logger = LogManager.getLogger(BASE_LOGGER_NAME+"."+name);
 		config = initialiseConfig();
-		mqConnection = initialiseMQConnection();
-		dbConnection = initialiseDBConnection();
-		initialiseQueues();
+		RabbitMQDetails rmqDetails = config.getRabbitMQDetails();
+		mqConnection = initialiseMQConnection(rmqDetails);
+		dbConnection = initialiseDBConnection(config.getDataSource());
+		initialiseInboxOutbox();
 	}
 	
 	/**
@@ -154,15 +162,12 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * the consumer will read messages from the MQ Server and deliver them to the inbox
 	 * @throws DefyndianMQException If there is no exchange specified, or a channel could not be created
 	 */
-	protected void setConsumer() throws DefyndianMQException{
-		String exchange = getConfigValue(DefyndianConfig.EXCHANGE_KEY);
-		String queue = getConfigValue(DefyndianConfig.QUEUE_KEY);
-		logger.debug("Got queue : " + queue + " with key: " + DefyndianConfig.QUEUE_KEY);
-		if( exchange==null ){
-			throw new DefyndianMQException("No exchange specified in config");
-		}
-		if( queue == null ){
-			queue = getName();
+	protected void setConsumer(RabbitMQDetails details) throws DefyndianMQException{
+		String exchange = details.getExchange();
+		String queue = details.getQueue();
+		logger.debug("Got queue : " + queue + " with key: " + details.getQueue());
+		if( exchange==null | queue==null ){
+			throw new DefyndianMQException("No exchange/queue specified for consumer");
 		}
 		setConsumer(exchange, queue);
 	}
@@ -175,71 +180,26 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 */
 	protected void setConsumer(String exchange, String queue) throws DefyndianMQException{
 		try {
-			consumer = new Consumer(inbox, mqConnection.createChannel(), exchange, queue, getConfigValue(DefyndianConfig.ROUTING_KEYS), logger);
+			consumer = new Consumer(inbox, mqConnection.createChannel(), exchange, queue, config.getRoutingKeys(), logger);
 			consumer.start(InetAddress.getLocalHost().getHostName() + "-" + getName());
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not create new channel for publishing");
 		}
 	}
 	
-	/**
-	 * Checks if the config contains a value for the given key, config accesses within a node are first
-	 * looked for as node specific ie. NODE_NAME.key and then for the default value ie. key
-	 * @param key The key to get
-	 * @return True if there is a value for this key (either node specific or default)
-	 */
-	public boolean hasConfigValue(String key){
-		String value = config.get(getName() + "." + key);
-		if( value!=null ){
-			return true;
-		}
-		else
-			return config.get(key)!=null;
-	}
-	
-	/**
-	 * Get the value from config, either node-specific of default if none exists
-	 * @param key Key to get
-	 * @return The value from the config, or null if no such key exists
-	 */
-	public String getConfigValue(String key){
-		String value = config.get(getName() + "." + key);
-		if( value==null ){
-			value = config.get(key);
-		}
-		return value;
-	}
-	
-	/**
-	 * As getConfigValue but defaultValue will be returned if no key exists
-	 * @param key The key to get
-	 * @param defaultValue The return value if the key is not found
-	 * @return Either the value of the given key or defaultValue
-	 */
-	public String getConfigValue(String key, String defaultValue){
-		String value = config.get(getName() + "." + key);
-		if( value==null ){
-			value = config.get(key);
-		}
-		if( value==null )
-			return defaultValue;
-		else
-			return value;
-	}
-	
 	public String getName(){
 		return name;
 	}
 	
-	public Connection getMQConnection(){
+	protected Connection getMQConnection(){
 		return mqConnection;
 	}
 	
-	public java.sql.Connection getDBConnection(){
+	protected java.sql.Connection getDBConnection(){
 		return dbConnection;
 	}
 	
-	public DefyndianEnvelope getMessageFromInbox() throws InterruptedException{
+	protected DefyndianEnvelope getMessageFromInbox() throws InterruptedException{
 		return inbox.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 	}
 	
@@ -252,7 +212,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	}
 	
 	protected void putMessageInOutbox(DefyndianMessage message) throws InterruptedException{
-		putMessageInOutbox(new DefyndianEnvelope(RoutingInfo.getRoute(	getConfigValue(DefyndianConfig.EXCHANGE_KEY),
+		putMessageInOutbox(new DefyndianEnvelope(RoutingInfo.getRoute(	config.getRabbitMQDetails().getExchange(),
 																		makeRoutingKey()
 																	)
 												, message)
@@ -278,7 +238,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	/**
 	 * Creates empty or clears the inbox and outbox queues
 	 */
-	private void initialiseQueues(){
+	private void initialiseInboxOutbox(){
 		if( inbox!=null )
 			inbox.clear();
 		else
@@ -292,24 +252,22 @@ public abstract class DefyndianNode implements AutoCloseable{
 	/**
 	 * Creates a new DefyndianConfig
 	 * @return A new DefyndianConfig
+	 * @throws IOException 
 	 * @throws DefyndianDatabaseException If there was an error accessing the config database
 	 */
-	private DefyndianConfig initialiseConfig() throws DefyndianDatabaseException{
-		try {
-			return DefyndianConfig.loadConfig();
-		} catch (SQLException | IOException e) {
-			throw new DefyndianDatabaseException(e.getMessage());
-		}
+	private DefyndianConfig initialiseConfig() throws ConfigInitialisationException{
+		return DefyndianConfig.getConfig(getName());
 	}
 	
 	/**
 	 * Connect to the database specified in the config
+	 * @param dataSource 
 	 * @return A new database connection
 	 * @throws DefyndianDatabaseException If a connection could not be created
 	 */
-	private java.sql.Connection initialiseDBConnection() throws DefyndianDatabaseException{
+	private java.sql.Connection initialiseDBConnection(DataSource dataSource) throws DefyndianDatabaseException{
 		try {
-			return config.getDatasource().getConnection();
+			return dataSource.getConnection();
 		} catch (SQLException e) {
 			throw new DefyndianDatabaseException(e.getMessage());
 		}
@@ -321,18 +279,13 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * @return A new MQConnection
 	 * @throws DefyndianMQException If no new connection could be created
 	 */
-	private Connection initialiseMQConnection() throws DefyndianMQException {
-		ConnectionFactory factory = new ConnectionFactory();
-		factory.setAutomaticRecoveryEnabled(true);
-		factory.setUsername(config.get("mq.username"));
-		factory.setVirtualHost(config.get("mq.virtualhost"));
-		factory.setPassword(config.get("mq.password"));
-		factory.setHost(config.get("mq.hostname"));
+	private Connection initialiseMQConnection(RabbitMQDetails details) throws DefyndianMQException {
+		ConnectionFactory factory = details.getConnectionFactory();
 		try {
 			Connection c = factory.newConnection();
 			Channel channel = c.createChannel();
-			logger.info("Declaring exchange: " + config.get("mq.exchange"));
-			channel.exchangeDeclare(config.get("mq.exchange"), "topic", true);
+			logger.info("Declaring exchange: " + details.getExchange());
+			channel.exchangeDeclare(details.getExchange(), "topic", true);
 			channel.close();
 			return c;
 		} catch (IOException | TimeoutException e) {

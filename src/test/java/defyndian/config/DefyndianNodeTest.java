@@ -9,7 +9,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import defyndian.config.DefyndianConfig;
+import defyndian.config.MysqlConfig;
 
 public class DefyndianNodeTest {
 
@@ -24,8 +24,8 @@ public class DefyndianNodeTest {
 	
 	@Test
 	public void testConfig() throws FileNotFoundException, SQLException, IOException{
-		DefyndianConfig config;
-		config = DefyndianConfig.loadConfig();
+		MysqlConfig config;
+		config = MysqlConfig.loadConfig();
 		assert config.get(TEST_CONFIG_KEY).equals(TEST_CONFIG_VALUE);
 		assert config.get(null, TEST_CONFIG_DEFAULT_VALUE).equals(TEST_CONFIG_DEFAULT_VALUE);
 	}

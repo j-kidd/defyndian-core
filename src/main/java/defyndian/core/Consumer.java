@@ -1,6 +1,7 @@
 package defyndian.core;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.logging.log4j.Logger;
@@ -47,7 +48,7 @@ public class Consumer extends DefaultConsumer{
 						Channel channel, 
 						String exchange, 
 						String queue,
-						String routingKeys,
+						Collection<String> routingKeys,
 						Logger logger) throws DefyndianMQException{
 		super(channel);
 		this.messageQueue = messageQueue;
@@ -98,15 +99,17 @@ public class Consumer extends DefaultConsumer{
 	 * @param routingKeys The RoutingKeys to bind to the given queue
 	 * @throws DefyndianMQException If no routing keys are specified
 	 */
-	private void initialiseQueue(String routingKeys) throws DefyndianMQException{
+	private void initialiseQueue(Collection<String> routingKeys) throws DefyndianMQException{
 		logger.info("Consumer declaring exchange/queue [" + exchange + "/" + queue + "]");
 		try{
 			getChannel().exchangeDeclare(exchange, "topic", true);
 			getChannel().queueDeclare(queue, true, false, false, null);
 			if( routingKeys==null )
 				throw new DefyndianMQException("Must specify routing keys to bind for this queue");
-			String[] routingKeysToBind = routingKeys.split(KEY_SEPARATOR);
-			for( String key : routingKeysToBind ){
+			if( routingKeys.isEmpty() ){
+				logger.warn("No Routing Keys specified for queue, will only receive on existing bindings");
+			}
+			for( String key : routingKeys ){
 				logger.info("Binding queue - ["+exchange + ":" + key + "] -> " + queue);
 				getChannel().queueBind(queue, exchange, key);
 			}

@@ -3,6 +3,7 @@ package defyndian.core;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
 import defyndian.messaging.BasicDefyndianMessage;
@@ -18,10 +19,10 @@ public abstract class DefyndianActor extends DefyndianNode {
 	 * @throws DefyndianMQException As thrown by DefyndianNode constructor
 	 * @throws DefyndianDatabaseException As thrown by DefyndianNode constructor
 	 */
-	public DefyndianActor(String name) throws DefyndianMQException, DefyndianDatabaseException {
+	public DefyndianActor(String name) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException {
 		super(name);
 		try{
-			setConsumer();
+			setConsumer(config.getRabbitMQDetails());
 		} catch( Exception e){
 			this.close();
 			throw e;

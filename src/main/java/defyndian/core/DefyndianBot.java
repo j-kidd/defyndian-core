@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
 import defyndian.messaging.DefyndianEnvelope;
@@ -30,10 +31,10 @@ public abstract class DefyndianBot extends DefyndianNode{
 	 * @throws DefyndianMQException If there is an AMQPException while connecting to the broker
 	 * @throws DefyndianDatabaseException If there is an error connecting to the database
 	 */
-	public DefyndianBot(String name) throws DefyndianMQException, DefyndianDatabaseException {
+	public DefyndianBot(String name) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException{
 		super(name);
 		setPublisher();
-		setConsumer();
+		setConsumer(config.getRabbitMQDetails());
 	}
 
 	/**

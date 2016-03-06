@@ -11,9 +11,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author james
  *
  */
-public class BasicDefyndianMessage implements DefyndianMessage {
+public class BasicDefyndianMessage extends TimeStampedMessage {
 
-	private final LocalDateTime timestamp;
 	private final String message;
 	
 	public BasicDefyndianMessage(String body ) {
@@ -22,19 +21,15 @@ public class BasicDefyndianMessage implements DefyndianMessage {
 	
 	@JsonCreator
 	public BasicDefyndianMessage(@JsonProperty("timestamp") long epochSeconds, @JsonProperty("message") String data) {
+		super(epochSeconds);
 		message = data;
-		timestamp = LocalDateTime.ofEpochSecond(epochSeconds, 0, ZoneOffset.UTC);
 	}
 	
 	public String getMessage(){
 		return message;
 	}
 	
-	public long getTimestamp() {
-		return timestamp.toEpochSecond(ZoneOffset.UTC);
-	}
-	
 	public String toString(){
-		return "{ " + timestamp + " - " + message + " }";
+		return "{ " + getTimestamp() + " - " + message + " }";
 	}
 }

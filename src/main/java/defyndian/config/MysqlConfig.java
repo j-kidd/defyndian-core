@@ -37,8 +37,8 @@ public class MysqlConfig extends MapBackedConfig{
 	
 	private static final String GET_CONFIG_QUERY = "SELECT * from defyndian.config where namespace = '?' OR namespace = '?'";
 
-	public MysqlConfig(String name) throws Exception{
-		super(name);
+	public MysqlConfig(String name, Properties init) throws Exception{
+		super(name, init);
 		initialiseConfig();
 	}
 

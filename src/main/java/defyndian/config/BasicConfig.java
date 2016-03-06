@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
 import defyndian.exception.ConfigInitialisationException;
@@ -34,27 +35,31 @@ public class BasicConfig extends MapBackedConfig{
 	private static final String CONFIG_DIRECTORY_KEY = "config.basic.d";
 	private static final String COMMENT_CHAR = "#";
 	private static final Pattern KEY_VALUE_SEPARATORS = Pattern.compile("[=:\\-\\s]+");
-	private static final String NAMESPACE_SEPARATOR = null;
+
 	private File configDirectory;
 	
-	public BasicConfig(String name) throws ConfigInitialisationException{
-		super(name);
+	public BasicConfig(String name, Properties init) throws ConfigInitialisationException{
+		super(name, init);
 	}
 	
-	protected BasicConfig(String name, File configDirectory) throws ConfigInitialisationException {
-		super(name);
-		this.configDirectory = configDirectory;
-	}
-
 	@Override
 	protected final Map<String, Map<String, String>> initialiseConfig() throws ConfigInitialisationException {
 		String configDirectoryName = getFromLocal(CONFIG_DIRECTORY_KEY);
 		File configDir;
-		if( configDirectoryName!=null && (configDir=new File(configDirectoryName)).exists() )
-			configDirectory = configDir;
+		if( configDirectoryName!=null ){
+			if ((configDir=new File(configDirectoryName)).exists() )
+				configDirectory = configDir;
+			else
+				throw new ConfigInitialisationException("Config directory " + configDir + " doesn't exist");
+				
+		}
 		else
 			configDirectory = Paths.get("").toAbsolutePath().toFile();
 
+		return initialiseConfig(configDirectory);
+	}
+
+	protected Map<String, Map<String,String>> initialiseConfig(File configDirectory) throws ConfigInitialisationException {
 		File[] filesInConfigDir = configDirectory.listFiles();
 		if( filesInConfigDir==null ){
 			throw new ConfigInitialisationException("Config directory is not a valid directory - " + configDirectory);
@@ -70,7 +75,7 @@ public class BasicConfig extends MapBackedConfig{
 		}
 		return conf;
 	}
-
+	
 	@Override
 	public void save() {
 		// TODO Auto-generated method stub

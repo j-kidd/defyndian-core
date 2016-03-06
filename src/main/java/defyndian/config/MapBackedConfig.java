@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.sql.DataSource;
 
@@ -36,8 +37,8 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 	private RabbitMQDetails rabbitMQDetails;
 	private DataSource datasource;
 	
-	public MapBackedConfig(String name) throws ConfigInitialisationException {
-		super(name);
+	public MapBackedConfig(String name, Properties init) throws ConfigInitialisationException {
+		super(name, init);
 		config = new HashMap<>();
 		config.putAll(initialiseConfig());
 		rabbitMQDetails = initialiseRabbitMQDetails();

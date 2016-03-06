@@ -1,8 +1,11 @@
 package defyndian.config;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Properties;
 
@@ -23,24 +26,38 @@ import defyndian.exception.ConfigInitialisationException;
 public abstract class DefyndianConfig {
 
 	private static final String DEFAULT_CONFIG_TYPE = ConfigType.BASIC.toString();
-	private static final String CONFIG_PROPERTIES = "defyndian.conf";
+	private static final String CONFIG_PROPERTIES = "defyndian.properties";
 	private static final String CONFIG_TYPE_KEY = "config.type";
 	private static Properties conf;
 	
 	private final String name;
 	
-	protected DefyndianConfig(String name){
+	protected DefyndianConfig(String name, Properties initialisation){
 		this.name = name;
+		conf = initialisation;
 	}
 	
-	public static DefyndianConfig getConfig(String name) throws ConfigInitialisationException{
+	public static DefyndianConfig getConfig(String name, File propertiesFile) throws ConfigInitialisationException{
 		conf = new Properties();
 		try{
-			conf.load(new BufferedReader(new InputStreamReader(DefyndianConfig.class.getClassLoader().getResourceAsStream(CONFIG_PROPERTIES))));
+			conf.load(new BufferedReader(new FileReader(propertiesFile)));
 		} catch( IOException e){
 			throw new ConfigInitialisationException(e);
 		}
-		return ConfigType.valueOf(conf.getProperty(CONFIG_TYPE_KEY, DEFAULT_CONFIG_TYPE)).getConfig(name);
+		return ConfigType.valueOf(conf.getProperty(CONFIG_TYPE_KEY, DEFAULT_CONFIG_TYPE)).getConfig(name, conf);
+	}
+	
+	public static DefyndianConfig getConfig(String name) throws ConfigInitialisationException{
+		File configProperties;
+		try {
+			configProperties = new File(System.class.getClassLoader().getResource(CONFIG_PROPERTIES).toURI());
+			if( ! configProperties.canRead() )
+				throw new ConfigInitialisationException("Initialisation Properties file " + CONFIG_PROPERTIES + " isn't readable/cannot be found");
+			return getConfig(name, configProperties);
+		} catch (URISyntaxException e) {
+			throw new ConfigInitialisationException(e);
+		}
+		
 	}
 	/**
 	 * Retrieve the value for this key

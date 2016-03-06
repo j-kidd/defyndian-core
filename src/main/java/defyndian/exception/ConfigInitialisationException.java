@@ -9,4 +9,8 @@ public class ConfigInitialisationException extends Exception {
 	public ConfigInitialisationException(String message){
 		super(message);
 	}
+
+	public ConfigInitialisationException(Throwable cause) {
+		super(cause);
+	}
 }

@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class DefyndianEnvelope<M extends DefyndianMessage> {
 
 	private RoutingInfo route;
-	private Class messageClass;
+	private Class<? extends DefyndianMessage> messageClass;
 	private M message;
 	
 	@JsonCreator
@@ -35,7 +35,7 @@ public class DefyndianEnvelope<M extends DefyndianMessage> {
 		return message;
 	}
 	
-	public Class getMessageClass(){
+	public Class<? extends DefyndianMessage> getMessageClass(){
 		return messageClass;
 	}
 	

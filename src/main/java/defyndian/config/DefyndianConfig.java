@@ -2,10 +2,12 @@ package defyndian.config;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Collection;
 import java.util.Properties;
 
@@ -50,7 +52,11 @@ public abstract class DefyndianConfig {
 	public static DefyndianConfig getConfig(String name) throws ConfigInitialisationException{
 		File configProperties;
 		try {
-			configProperties = new File(System.class.getClassLoader().getResource(CONFIG_PROPERTIES).toURI());
+			URL properties = DefyndianConfig.class.getClassLoader().getResource(CONFIG_PROPERTIES);
+			if( properties == null ){
+				throw new ConfigInitialisationException(new FileNotFoundException("No " + CONFIG_PROPERTIES + " file on classpath"));
+			}
+			configProperties = new File(properties.toURI());
 			if( ! configProperties.canRead() )
 				throw new ConfigInitialisationException("Initialisation Properties file " + CONFIG_PROPERTIES + " isn't readable/cannot be found");
 			return getConfig(name, configProperties);

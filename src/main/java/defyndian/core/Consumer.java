@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,11 +27,11 @@ import defyndian.messaging.DefyndianMessage;
  */
 public class Consumer extends DefaultConsumer{
 	
-	private final Logger logger;
+	private static final Logger logger = LogManager.getLogger();
 	private static final String KEY_SEPARATOR = ",";
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 	
-	private BlockingQueue<DefyndianEnvelope> messageQueue;
+	private BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue;
 	private String exchange;
 	private String queue;
 	
@@ -44,17 +45,15 @@ public class Consumer extends DefaultConsumer{
 	 * @param logger The Logger to use
 	 * @throws DefyndianMQException If an exception occurs during setup of the AMQP connection
 	 */
-	public Consumer(	BlockingQueue<DefyndianEnvelope> messageQueue, 
+	public Consumer(	BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue, 
 						Channel channel, 
 						String exchange, 
 						String queue,
-						Collection<String> routingKeys,
-						Logger logger) throws DefyndianMQException{
+						Collection<String> routingKeys) throws DefyndianMQException{
 		super(channel);
 		this.messageQueue = messageQueue;
 		this.exchange = exchange;
 		this.queue = queue;
-		this.logger = logger;
 		initialiseQueue(routingKeys);
 		logger.info("Consumer created: " + exchange + " " + queue);
 	}
@@ -81,7 +80,7 @@ public class Consumer extends DefaultConsumer{
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body){
 		try{
-			DefyndianEnvelope<DefyndianMessage> defyndianEnvelope = objectMapper.readValue(body, DefyndianEnvelope.class);
+			DefyndianEnvelope<? extends DefyndianMessage> defyndianEnvelope = objectMapper.readValue(body, DefyndianEnvelope.class);
 			try{
 				logger.debug(new String(body));
 				messageQueue.put(defyndianEnvelope);

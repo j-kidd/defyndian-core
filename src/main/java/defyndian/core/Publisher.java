@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,26 +12,24 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
 import defyndian.messaging.DefyndianEnvelope;
+import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.BasicDefyndianMessage;
 
-public class Publisher extends Thread{
+public class Publisher implements Runnable{
 
-	private final Logger logger;
+	private static final Logger logger = LogManager.getLogger();
 	
-	private BlockingQueue<DefyndianEnvelope> messageQueue;
+	private BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue;
 	private Channel channel;
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 	
 	private boolean STOP;
 	
 	
-	public Publisher(BlockingQueue<DefyndianEnvelope> messageQueue, Channel channel, Logger logger){
+	public Publisher(BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue, Channel channel){
 		super();
-		this.setName("Publisher");
-		setDaemon(true);
 		this.messageQueue = messageQueue;
 		this.channel = channel;
-		this.logger = logger;
 	}
 	
 	public void setStop(){

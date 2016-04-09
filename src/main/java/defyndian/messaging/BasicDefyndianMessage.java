@@ -29,6 +29,25 @@ public class BasicDefyndianMessage extends TimeStampedMessage {
 		return message;
 	}
 	
+	@Override
+	public boolean equals(Object other){
+		if( other == this )
+			return true;
+		else if( other.getClass() != this.getClass() )
+			return false;
+		
+		BasicDefyndianMessage otherMessage = (BasicDefyndianMessage) other;
+		return message.equals(otherMessage.getMessage()) & getTimestamp() == otherMessage.getTimestamp();
+	}
+	
+	@Override
+	public int hashCode(){
+		int result = 39;
+		result = 17*result + (int)(getTimestamp()^(getTimestamp()>>32));
+		result = 17*result + message.hashCode();
+		return result;
+	}
+	
 	public String toString(){
 		return "{ " + getTimestamp() + " - " + message + " }";
 	}

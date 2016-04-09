@@ -8,6 +8,7 @@ import defyndian.exception.DefyndianMQException;
 
 public abstract class DefyndianSensor<T> extends DefyndianNode {
 
+	private final Thread publisherThread;
 	private final Integer DELAY;
 	
 	/**
@@ -21,6 +22,7 @@ public abstract class DefyndianSensor<T> extends DefyndianNode {
 		super(name);
 		try{
 			setPublisher();
+			publisherThread = new Thread(publisher);
 		} catch ( Exception e ){
 			this.close();
 			throw e;
@@ -50,7 +52,7 @@ public abstract class DefyndianSensor<T> extends DefyndianNode {
 		logger.info(getName() + " started");
 		setup();
 		logger.info("Starting publisher");
-		publisher.start();
+		startPublisher();
 		while( !topShouldExit() ){
 			Collection<T> sensorInfo = sensorFired();
 			if( ! sensorInfo.isEmpty() ){
@@ -64,6 +66,12 @@ public abstract class DefyndianSensor<T> extends DefyndianNode {
 			}
 		}
 		close();
+	}
+	
+	private void startPublisher(){
+		publisherThread.setName(getName() + "-Publisher");
+		publisherThread.setDaemon(true);
+		publisherThread.start();
 	}
 
 }

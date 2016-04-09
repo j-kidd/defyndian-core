@@ -52,8 +52,8 @@ public abstract class DefyndianNode implements AutoCloseable{
 	
 	protected Logger logger;
 	private boolean STOP = false;
-	private LinkedBlockingQueue<DefyndianEnvelope> inbox;
-	private LinkedBlockingQueue<DefyndianEnvelope> outbox;
+	private LinkedBlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> inbox;
+	private LinkedBlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> outbox;
 	protected Publisher publisher;
 	protected Consumer consumer;
 	
@@ -151,7 +151,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 */
 	protected void setPublisher() throws DefyndianMQException{
 		try {
-			publisher = new Publisher(outbox, mqConnection.createChannel(), logger);
+			publisher = new Publisher(outbox, mqConnection.createChannel());
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not create new channel for publishing");
 		}
@@ -180,7 +180,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 */
 	protected void setConsumer(String exchange, String queue) throws DefyndianMQException{
 		try {
-			consumer = new Consumer(inbox, mqConnection.createChannel(), exchange, queue, config.getRoutingKeys(), logger);
+			consumer = new Consumer(inbox, mqConnection.createChannel(), exchange, queue, config.getRoutingKeys());
 			consumer.start(InetAddress.getLocalHost().getHostName() + "-" + getName());
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not create new channel for publishing");
@@ -219,7 +219,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 							);
 	}
 	
-	public Iterator<DefyndianEnvelope> getOutboxMessages(){
+	public Iterator<DefyndianEnvelope<? extends DefyndianMessage>> getOutboxMessages(){
 		return outbox.iterator();
 	}
 	

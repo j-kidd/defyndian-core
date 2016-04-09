@@ -18,6 +18,20 @@ public class DefyndianRoutingKey {
 		this.extraRouting = extra;
 	}
 	
+	public DefyndianRoutingKey(String routingKey) throws InvalidRoutingKeyException{
+		String[] topics = routingKey.split("\\.");
+		if( topics.length != 3 ){
+			throw new InvalidRoutingKeyException(String.format("[ %s ] RoutingKeys must have three sections PRODUCER.TYPE.EXTRA", routingKey));
+		}
+		producer = topics[0];
+		try{
+			routingType = DefyndianRoutingType.valueOf(topics[1]);
+		} catch( IllegalArgumentException e){
+			throw new InvalidRoutingKeyException("RoutingType " + topics[1] + " did not match any known type");
+		}
+		extraRouting = topics[2];
+	}
+	
 	public String getProducer(){
 		return producer;
 	}

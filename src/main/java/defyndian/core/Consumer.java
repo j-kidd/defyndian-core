@@ -16,6 +16,7 @@ import com.rabbitmq.client.Envelope;
 import defyndian.exception.DefyndianMQException;
 import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
+import defyndian.messaging.DefyndianRoutingKey;
 
 /**
  * A Consumer run Asynchronously for each Sensor; it manages the inbox by
@@ -49,7 +50,7 @@ public class Consumer extends DefaultConsumer{
 						Channel channel, 
 						String exchange, 
 						String queue,
-						Collection<String> routingKeys) throws DefyndianMQException{
+						Collection<DefyndianRoutingKey> routingKeys) throws DefyndianMQException{
 		super(channel);
 		this.messageQueue = messageQueue;
 		this.exchange = exchange;
@@ -98,7 +99,7 @@ public class Consumer extends DefaultConsumer{
 	 * @param routingKeys The RoutingKeys to bind to the given queue
 	 * @throws DefyndianMQException If no routing keys are specified
 	 */
-	private void initialiseQueue(Collection<String> routingKeys) throws DefyndianMQException{
+	private void initialiseQueue(Collection<DefyndianRoutingKey> routingKeys) throws DefyndianMQException{
 		logger.info("Consumer declaring exchange/queue [" + exchange + "/" + queue + "]");
 		try{
 			getChannel().exchangeDeclare(exchange, "topic", true);
@@ -108,9 +109,9 @@ public class Consumer extends DefaultConsumer{
 			if( routingKeys.isEmpty() ){
 				logger.warn("No Routing Keys specified for queue, will only receive on existing bindings");
 			}
-			for( String key : routingKeys ){
+			for( DefyndianRoutingKey key : routingKeys ){
 				logger.info("Binding queue - ["+exchange + ":" + key + "] -> " + queue);
-				getChannel().queueBind(queue, exchange, key);
+				getChannel().queueBind(queue, exchange, key.toString());
 			}
 		} catch( IOException e ){
 			logger.error("Error declaring exchange/queue", e);

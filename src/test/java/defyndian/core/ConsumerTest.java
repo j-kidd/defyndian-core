@@ -22,6 +22,7 @@ import defyndian.messaging.BasicDefyndianMessage;
 import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.DefyndianRoutingKey;
+import defyndian.messaging.DefyndianRoutingType;
 import defyndian.messaging.InvalidRoutingKeyException;
 
 public class ConsumerTest {
@@ -29,8 +30,8 @@ public class ConsumerTest {
 	private static final String consumerTag = "CONSUMER_TAG";
 	private static final String exchange = "EXCHANGE";
 	private static final String queue = "QUEUE";
-	private static final String routingKeyA = "ROUTING_KEY_A";
-	private static final String routingKeyB = "ROUTING_KEY_B";
+	private static DefyndianRoutingKey routingKeyA; 
+	private static DefyndianRoutingKey routingKeyB; 
 	private static final ObjectMapper mapper = new ObjectMapper();
 	
 	private static DefyndianEnvelope<? extends DefyndianMessage> sampleEnvelopeA;
@@ -42,8 +43,10 @@ public class ConsumerTest {
 	
 	@BeforeClass
 	public static void setupMessages() throws InvalidRoutingKeyException{
-		sampleEnvelopeA = new DefyndianEnvelope<BasicDefyndianMessage>(new DefyndianRoutingKey("TEST.DEFAULT.A"), new BasicDefyndianMessage("Sample Message A"));
-		sampleEnvelopeB = new DefyndianEnvelope<BasicDefyndianMessage>(new DefyndianRoutingKey("TEST.DEFAULT.B"), new BasicDefyndianMessage("Sample Message B"));
+		routingKeyA = new DefyndianRoutingKey("TEST.#");
+		routingKeyB = new DefyndianRoutingKey("TEST.*.EXTRA");
+		sampleEnvelopeA = new DefyndianEnvelope<BasicDefyndianMessage>(routingKeyA, new BasicDefyndianMessage("Sample Message A"));
+		sampleEnvelopeB = new DefyndianEnvelope<BasicDefyndianMessage>(routingKeyB, new BasicDefyndianMessage("Sample Message B"));
 		channel = mock(Channel.class);
 	}
 	
@@ -60,7 +63,7 @@ public class ConsumerTest {
 	
 	@Test
 	public void sampleMessageIsDelivered() throws JsonProcessingException{
-		consumer.handleDelivery(consumerTag, new Envelope(1, false, exchange, routingKeyA), null, mapper.writeValueAsBytes(sampleEnvelopeA));
+		consumer.handleDelivery(consumerTag, new Envelope(1, false, exchange, routingKeyA.toString()), null, mapper.writeValueAsBytes(sampleEnvelopeA));
 		DefyndianEnvelope<? extends DefyndianMessage> envelope = messageQueue.poll();
 		assert(envelope != null);
 		assert(envelope.getMessage().equals(sampleEnvelopeA.getMessage()));

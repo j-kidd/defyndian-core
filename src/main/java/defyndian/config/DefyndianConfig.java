@@ -14,6 +14,7 @@ import java.util.Properties;
 import javax.sql.DataSource;
 
 import defyndian.exception.ConfigInitialisationException;
+import defyndian.messaging.DefyndianRoutingKey;
 
 /**
  * Super class for all config classes, subclasses should implement
@@ -27,7 +28,7 @@ import defyndian.exception.ConfigInitialisationException;
  */
 public abstract class DefyndianConfig {
 
-	private static final String DEFAULT_CONFIG_TYPE = ConfigType.BASIC.toString();
+	private static final ConfigType DEFAULT_CONFIG_TYPE = ConfigType.BASIC;
 	private static final String CONFIG_PROPERTIES = "defyndian.properties";
 	private static final String CONFIG_TYPE_KEY = "config.type";
 	private static Properties conf;
@@ -46,7 +47,7 @@ public abstract class DefyndianConfig {
 		} catch( IOException e){
 			throw new ConfigInitialisationException(e);
 		}
-		return ConfigType.valueOf(conf.getProperty(CONFIG_TYPE_KEY, DEFAULT_CONFIG_TYPE)).getConfig(name, conf);
+		return ConfigType.valueOf(conf.getProperty(CONFIG_TYPE_KEY, DEFAULT_CONFIG_TYPE.toString())).getConfig(name, conf);
 	}
 	
 	public static DefyndianConfig getConfig(String name) throws ConfigInitialisationException{
@@ -110,7 +111,7 @@ public abstract class DefyndianConfig {
 	 */
 	public abstract void save();
 	
-	public abstract Collection<String> getRoutingKeys();
+	public abstract Collection<DefyndianRoutingKey> getRoutingKeys();
 	
 	protected final String getName(){
 		return name;

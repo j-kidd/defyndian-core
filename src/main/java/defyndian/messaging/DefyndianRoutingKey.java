@@ -1,10 +1,14 @@
 package defyndian.messaging;
 
+import java.util.Arrays;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class DefyndianRoutingKey {
 
+	private static final String MULTI_MATCH_CHAR = "#";
+	
 	private String producer;
 	private DefyndianRoutingType routingType;
 	private String extraRouting;
@@ -20,16 +24,57 @@ public class DefyndianRoutingKey {
 	
 	public DefyndianRoutingKey(String routingKey) throws InvalidRoutingKeyException{
 		String[] topics = routingKey.split("\\.");
-		if( topics.length != 3 ){
-			throw new InvalidRoutingKeyException(String.format("[ %s ] RoutingKeys must have three sections PRODUCER.TYPE.EXTRA", routingKey));
+		if( topics.length > 3 ){
+			throw new InvalidRoutingKeyException("A DefyndianRoutingKey can have at most three sections");
 		}
-		producer = topics[0];
-		try{
-			routingType = DefyndianRoutingType.valueOf(topics[1]);
-		} catch( IllegalArgumentException e){
-			throw new InvalidRoutingKeyException("RoutingType " + topics[1] + " did not match any known type");
+		else if( topics.length < 3 ){
+			switch( topics.length ){
+				case 0: {
+					throw new InvalidRoutingKeyException("Empty Routing Key not valid");
+				}
+				case 1: {
+					if( topics[0].equals(MULTI_MATCH_CHAR) ){
+						producer = "";
+						routingType = DefyndianRoutingType.ALL;
+						extraRouting = "";
+					}
+					else {
+						throw new InvalidRoutingKeyException("RoutingKeys must contain three sections, see docs");
+					}
+					break;
+				}
+				case 2: {
+					if( topics[0].equals(MULTI_MATCH_CHAR) ){
+						producer = "";
+						routingType = DefyndianRoutingType.ALL;
+						extraRouting = topics[1];
+					}
+					else if( topics[1].equals(MULTI_MATCH_CHAR) ){
+						producer = topics[0];
+						routingType = DefyndianRoutingType.ALL;
+						extraRouting = "";
+					}
+					else{
+						throw new InvalidRoutingKeyException("RoutingKeys must contain three sections (or wildcards), see docs");
+					}
+					break;
+				}
+				
+			}
 		}
-		extraRouting = topics[2];
+		else{
+			producer = topics[0];
+			try{
+				routingType = DefyndianRoutingType.getType(topics[1]);
+			} catch( IllegalArgumentException e){
+				throw new InvalidRoutingKeyException("RoutingType " + topics[1] + " did not match any known type");
+			}
+			extraRouting = topics[2];
+		}
+	}
+	
+	public static DefyndianRoutingKey getDefaultKey(String producer){
+		return new DefyndianRoutingKey(producer, DefyndianRoutingType.DEFAULT, "");
 	}
 	
 	public String getProducer(){
@@ -44,6 +89,10 @@ public class DefyndianRoutingKey {
 		return extraRouting;
 	}
 	
+	/*
+	 * Returns the string representation of this routing key as used by AMQP (RabbitMQ)
+	 * @see java.lang.Object#toString()
+	 */
 	public String toString(){
 		return producer +"."+ routingType +"."+ extraRouting;
 	}

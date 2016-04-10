@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
 
@@ -16,6 +17,8 @@ import com.rabbitmq.client.ConnectionFactory;
 import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
+import defyndian.messaging.DefyndianRoutingKey;
+import defyndian.messaging.InvalidRoutingKeyException;
 
 public abstract class MapBackedConfig extends DefyndianConfig {
 
@@ -35,6 +38,7 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 	
 	private Map<String, Map<String, String>> config;
 	private RabbitMQDetails rabbitMQDetails;
+	private Collection<DefyndianRoutingKey> routingKeys;
 	private DataSource datasource;
 	
 	public MapBackedConfig(String name, Properties init) throws ConfigInitialisationException {
@@ -43,6 +47,7 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 		config.putAll(initialiseConfig());
 		rabbitMQDetails = initialiseRabbitMQDetails();
 		datasource = initialiseDataSource();
+		routingKeys = convertRoutingKeys(get(MQ_ROUTING_KEYS));
 	}
 	
 	/**
@@ -74,12 +79,8 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 		}
 	}
 	
-	public Collection<String> getRoutingKeys(){
-		String keys = get(MQ_ROUTING_KEYS);
-		if( keys == null )
-			return Collections.EMPTY_LIST;
-		else
-			return Arrays.asList(keys.split(","));
+	public Collection<DefyndianRoutingKey> getRoutingKeys() {
+		return routingKeys;
 	}
 	
 	public RabbitMQDetails getRabbitMQDetails(){
@@ -119,6 +120,7 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 		return namespaceConfig.get(key);
 	}
 	
+	
 	private final RabbitMQDetails initialiseRabbitMQDetails() throws ConfigInitialisationException {
 		String exchange = get(MQ_EXCHANGE_KEY);
 		String queue = get(MQ_QUEUE_KEY);
@@ -144,6 +146,22 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 		datasource.setPassword(password);
 		datasource.setDatabaseName(database);
 		return datasource;
+	}
+	
+	private Collection<DefyndianRoutingKey> convertRoutingKeys(String keys) throws ConfigInitialisationException{
+		LinkedList<DefyndianRoutingKey> convertedKeys = new LinkedList<>();
+		
+		if( keys == null )
+			return convertedKeys;
+
+		for( String s : keys.split(",") ){
+			try{
+				convertedKeys.add(new DefyndianRoutingKey(s));
+			} catch( InvalidRoutingKeyException e ){
+				throw new ConfigInitialisationException(e);
+			}
+		}
+		return convertedKeys;
 	}
 	
 	public String toString(){

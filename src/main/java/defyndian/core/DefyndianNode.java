@@ -3,7 +3,10 @@ package defyndian.core;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -29,6 +32,7 @@ import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.BasicDefyndianMessage;
 import defyndian.messaging.DefyndianRoutingKey;
 import defyndian.messaging.DefyndianRoutingType;
+import defyndian.messaging.InvalidRoutingKeyException;
 import defyndian.messaging.RoutingInfo;
 
 /**
@@ -40,8 +44,6 @@ import defyndian.messaging.RoutingInfo;
  */
 public abstract class DefyndianNode implements AutoCloseable{
 
-	private static final String DESCRIPTION = "This is a default Defyndian Node description";
-	
 	private static final String BASE_LOGGER_NAME = "Defyndian";
 	private static final int MAX_INBOX_SIZE = 10;
 	private static final int MAX_OUTBOX_SIZE = 5;
@@ -212,27 +214,16 @@ public abstract class DefyndianNode implements AutoCloseable{
 	}
 	
 	protected void putMessageInOutbox(DefyndianMessage message) throws InterruptedException{
-		putMessageInOutbox(new DefyndianEnvelope(RoutingInfo.getRoute(	config.getRabbitMQDetails().getExchange(),
-																		makeRoutingKey()
-																	)
-												, message)
+		putMessageInOutbox(new DefyndianEnvelope<DefyndianMessage>(RoutingInfo.getRoute(
+																				config.getRabbitMQDetails().getExchange(),
+																				DefyndianRoutingKey.getDefaultKey(getName())
+																			)
+													, message)
 							);
 	}
 	
 	public Iterator<DefyndianEnvelope<? extends DefyndianMessage>> getOutboxMessages(){
 		return outbox.iterator();
-	}
-	
-	protected DefyndianRoutingKey makeRoutingKey(DefyndianRoutingType type, String extra){
-		return new DefyndianRoutingKey(getName(), type, extra);
-	}
-	
-	protected DefyndianRoutingKey makeRoutingKey(String extra){
-		return makeRoutingKey(DefyndianRoutingType.DEFAULT, extra);
-	}
-	
-	protected DefyndianRoutingKey makeRoutingKey(){
-		return makeRoutingKey("");
 	}
 	
 	/**

@@ -21,13 +21,6 @@ public abstract class DefyndianActor extends DefyndianNode {
 	 */
 	public DefyndianActor(String name) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException {
 		super(name);
-		try{
-			setConsumer(config.getRabbitMQDetails());
-		} catch( Exception e){
-			this.close();
-			throw e;
-		}
-		
 	}
 
 	/**

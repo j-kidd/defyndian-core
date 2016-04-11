@@ -48,6 +48,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	private static final int MAX_INBOX_SIZE = 10;
 	private static final int MAX_OUTBOX_SIZE = 5;
 	private static final long TIMEOUT_SECONDS = 5;
+	
 	private Connection mqConnection;
 	private java.sql.Connection dbConnection;
 	protected DefyndianConfig config;
@@ -77,6 +78,8 @@ public abstract class DefyndianNode implements AutoCloseable{
 		mqConnection = initialiseMQConnection(rmqDetails);
 		dbConnection = initialiseDBConnection(config.getDataSource());
 		initialiseInboxOutbox();
+		setConsumer(rmqDetails);
+		setPublisher();
 	}
 	
 	/**
@@ -185,16 +188,16 @@ public abstract class DefyndianNode implements AutoCloseable{
 		return dbConnection;
 	}
 	
-	protected DefyndianEnvelope getMessageFromInbox() throws InterruptedException{
+	protected DefyndianEnvelope<? extends DefyndianMessage> getMessageFromInbox() throws InterruptedException{
 		return inbox.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 	}
 	
-	protected void putMessageInOutbox(DefyndianEnvelope envelope) throws InterruptedException{
+	protected void putMessageInOutbox(DefyndianEnvelope<? extends DefyndianMessage> envelope) throws InterruptedException{
 		outbox.put(envelope);
 	}
 	
 	protected void putMessageInOutbox(String exchange, DefyndianRoutingKey routingKey, DefyndianMessage message) throws InterruptedException{
-		putMessageInOutbox(new DefyndianEnvelope(RoutingInfo.getRoute(exchange, routingKey), message));
+		putMessageInOutbox(new DefyndianEnvelope<DefyndianMessage>(RoutingInfo.getRoute(exchange, routingKey), message));
 	}
 	
 	protected void putMessageInOutbox(DefyndianMessage message) throws InterruptedException{

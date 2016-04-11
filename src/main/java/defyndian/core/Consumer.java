@@ -109,7 +109,7 @@ public class Consumer extends DefaultConsumer{
 			getChannel().queueDeclare(queue, true, false, false, null);
 			if( routingKeys==null )
 				throw new DefyndianMQException("Must specify routing keys to bind for this queue");
-			if( routingKeys.isEmpty() ){
+			else if( routingKeys.isEmpty() ){
 				logger.warn("No Routing Keys specified for queue, will only receive on existing bindings");
 			}
 			for( DefyndianRoutingKey key : routingKeys ){
@@ -117,6 +117,7 @@ public class Consumer extends DefaultConsumer{
 				getChannel().queueBind(queue, exchange, key.toString());
 			}
 			getChannel().queueBind(queue, exchange, directConsumerRoutingKey);
+			getChannel().queueBind(queue, exchange, new DefyndianRoutingKey("Station", DefyndianRoutingType.ALL, "*").toString());
 		} catch( IOException e ){
 			logger.error("Error declaring exchange/queue", e);
 		}

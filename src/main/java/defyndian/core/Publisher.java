@@ -19,6 +19,7 @@ public class Publisher implements Runnable{
 
 	private static final Logger logger = LogManager.getLogger();
 	
+	private Thread thread;
 	private BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue;
 	private Channel channel;
 	private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -30,6 +31,22 @@ public class Publisher implements Runnable{
 		super();
 		this.messageQueue = messageQueue;
 		this.channel = channel;
+	}
+	
+	/**
+	 * Start this publisher in a separate thread, handled by the publisher
+	 * This method has no effect on a running publisher
+	 */
+	public void start(String name){
+		if( thread!=null && thread.isAlive() ){
+			return;
+		}
+		else{
+			thread = new Thread(this);
+			thread.setName(name + " Publisher");
+			thread.setDaemon(true);
+			thread.start();
+		}
 	}
 	
 	public void setStop(){

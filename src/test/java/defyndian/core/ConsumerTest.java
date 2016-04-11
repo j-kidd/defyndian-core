@@ -14,9 +14,12 @@ import static org.mockito.Mockito.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Envelope;
 
+import defyndian.config.RabbitMQDetails;
 import defyndian.core.Consumer;
+import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianMQException;
 import defyndian.messaging.BasicDefyndianMessage;
 import defyndian.messaging.DefyndianEnvelope;
@@ -51,9 +54,13 @@ public class ConsumerTest {
 	}
 	
 	@Before
-	public void createConsumer() throws DefyndianMQException{
+	public void createConsumer() throws DefyndianMQException, ConfigInitialisationException{
 		messageQueue = new LinkedBlockingQueue<>();
-		consumer = new Consumer(messageQueue, channel, exchange, queue, Arrays.asList(routingKeyA, routingKeyB));
+		ConnectionFactory mockFactory = mock(ConnectionFactory.class);
+		when(mockFactory.getHost()).then(s -> "FakeHost");
+		when(mockFactory.getUsername()).then(s -> "FakeUser");
+		when(mockFactory.getPassword()).then(s -> "FakePassword");
+		consumer = new Consumer(messageQueue, channel, "TestConsumer", new RabbitMQDetails(exchange, queue, mockFactory), Arrays.asList(routingKeyA, routingKeyB));
 	}
 	
 	@Test

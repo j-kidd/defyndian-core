@@ -2,6 +2,7 @@ package defyndian.core;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,6 +35,7 @@ import defyndian.messaging.DefyndianRoutingKey;
 import defyndian.messaging.DefyndianRoutingType;
 import defyndian.messaging.InvalidRoutingKeyException;
 import defyndian.messaging.RoutingInfo;
+import defyndian.messaging.SystemPresenceMessage;
 
 /**
  * This is the base class for all components of the system, it contains the Inbox/Outbox 
@@ -45,6 +47,7 @@ import defyndian.messaging.RoutingInfo;
 public abstract class DefyndianNode implements AutoCloseable{
 
 	private static final String BASE_LOGGER_NAME = "Defyndian";
+	private static final String STATION_NAME = "Station";
 	private static final int MAX_INBOX_SIZE = 10;
 	private static final int MAX_OUTBOX_SIZE = 5;
 	private static final long TIMEOUT_SECONDS = 5;
@@ -53,14 +56,18 @@ public abstract class DefyndianNode implements AutoCloseable{
 	private java.sql.Connection dbConnection;
 	protected DefyndianConfig config;
 	
-	protected Logger logger;
+	protected final Logger logger;
 	private boolean STOP = false;
 	private LinkedBlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> inbox;
 	private LinkedBlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> outbox;
-	protected Publisher publisher;
-	protected Consumer consumer;
+	protected final Publisher publisher;
+	protected final Consumer consumer;
 	
-	private String name;
+	private final String name;
+	private final String host;
+	
+	// A node is in Brigade if it is in contact with a DefyndianStation on this network
+	private boolean inBrigade;
 	
 	/**
 	 * The constructor initialises all managed resources and declares the
@@ -73,13 +80,28 @@ public abstract class DefyndianNode implements AutoCloseable{
 	public DefyndianNode(String name) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException{
 		this.name = name;
 		logger = LogManager.getLogger(BASE_LOGGER_NAME+"."+name);
+		try{
+			host = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e ){
+			throw new IllegalStateException("Cannot fail to recognise local host");
+		}
 		config = initialiseConfig();
 		RabbitMQDetails rmqDetails = config.getRabbitMQDetails();
 		mqConnection = initialiseMQConnection(rmqDetails);
 		dbConnection = initialiseDBConnection(config.getDataSource());
 		initialiseInboxOutbox();
-		setConsumer(rmqDetails);
-		setPublisher();
+		try {
+			consumer = new Consumer(inbox, mqConnection.createChannel(), getName(), rmqDetails, config.getRoutingKeys());
+			consumer.start(host + "-" + getName());
+			publisher = new Publisher(outbox, mqConnection.createChannel());
+		} catch (IOException e) {
+			throw new DefyndianMQException("Could not create new channel in creation of new Node " + name);
+		}
+		try{
+			inBrigade = contactStation();
+		} catch (InterruptedException e){
+			inBrigade = false;
+		}
 	}
 	
 	/**
@@ -149,35 +171,12 @@ public abstract class DefyndianNode implements AutoCloseable{
 		}
 	}
 	
-	/**
-	 * Initialises the published for this node, the publisher will read messages from the outbox
-	 * and deliver them to the system
-	 * @throws DefyndianMQException If no new channel could be created within the MQConnection
-	 */
-	protected void setPublisher() throws DefyndianMQException{
-		try {
-			publisher = new Publisher(outbox, mqConnection.createChannel());
-		} catch (IOException e) {
-			throw new DefyndianMQException("Could not create new channel for publishing");
-		}
-	}
-	
-	/**
-	 * Initialises a consumer with the exchange/queue values from the config,
-	 * the consumer will read messages from the MQ Server and deliver them to the inbox
-	 * @throws DefyndianMQException If there is no exchange specified, or a channel could not be created
-	 */
-	protected void setConsumer(RabbitMQDetails details) throws DefyndianMQException{
-		try {
-			consumer = new Consumer(inbox, mqConnection.createChannel(), getName(), details, config.getRoutingKeys());
-			consumer.start(InetAddress.getLocalHost().getHostName() + "-" + getName());
-		} catch (IOException e) {
-			throw new DefyndianMQException("Could not create new channel for publishing");
-		}
-	}
-	
 	public String getName(){
 		return name;
+	}
+	
+	public static final String getStationName(){
+		return STATION_NAME;
 	}
 	
 	protected Connection getMQConnection(){
@@ -189,28 +188,49 @@ public abstract class DefyndianNode implements AutoCloseable{
 	}
 	
 	protected DefyndianEnvelope<? extends DefyndianMessage> getMessageFromInbox() throws InterruptedException{
-		return inbox.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+		return getMessageFromInbox(TIMEOUT_SECONDS);
 	}
 	
-	protected void putMessageInOutbox(DefyndianEnvelope<? extends DefyndianMessage> envelope) throws InterruptedException{
+	protected DefyndianEnvelope<? extends DefyndianMessage> getMessageFromInbox(long timeoutSeconds) throws InterruptedException{
+		return inbox.poll(timeoutSeconds, TimeUnit.SECONDS);
+	}
+	
+	protected final void putMessageInOutbox(DefyndianRoutingType routing, DefyndianMessage message) throws InterruptedException{
+		putMessageInOutbox(routing, "", message);
+	}
+	
+	protected final void putMessageInOutbox(DefyndianRoutingType routing, String extra, DefyndianMessage message) throws InterruptedException{
+		DefyndianRoutingKey routingKey = new DefyndianRoutingKey(getName(), routing, extra);
+		DefyndianEnvelope<DefyndianMessage> envelope = new DefyndianEnvelope<DefyndianMessage>(RoutingInfo.getRoute(config.getRabbitMQDetails().getExchange(), routingKey), message);
 		outbox.put(envelope);
-	}
-	
-	protected void putMessageInOutbox(String exchange, DefyndianRoutingKey routingKey, DefyndianMessage message) throws InterruptedException{
-		putMessageInOutbox(new DefyndianEnvelope<DefyndianMessage>(RoutingInfo.getRoute(exchange, routingKey), message));
-	}
-	
-	protected void putMessageInOutbox(DefyndianMessage message) throws InterruptedException{
-		putMessageInOutbox(new DefyndianEnvelope<DefyndianMessage>(RoutingInfo.getRoute(
-																				config.getRabbitMQDetails().getExchange(),
-																				DefyndianRoutingKey.getDefaultKey(getName())
-																			)
-													, message)
-							);
 	}
 	
 	public Iterator<DefyndianEnvelope<? extends DefyndianMessage>> getOutboxMessages(){
 		return outbox.iterator();
+	}
+	
+	/**
+	 * This method is used during initialisation to decide if this node
+	 * is on a network with a Station. After sending a SystemPresenceMessage
+	 * any SYSTEM response from station with the extra field set to the name
+	 * of this node is counted as a successful contact
+	 * @return true if a Station was contacted, false otherwise
+	 * @throws InterruptedException 
+	 * @throws UnknownHostException 
+	 */
+	private final boolean contactStation() throws InterruptedException{
+		DefyndianMessage message = new SystemPresenceMessage(System.currentTimeMillis(), getName(), host);
+		putMessageInOutbox(DefyndianRoutingType.SYSTEM, message);
+		DefyndianEnvelope<? extends DefyndianMessage> response = getMessageFromInbox(10);
+		if( response==null ) {
+			return false;
+		}
+		else{
+			DefyndianRoutingKey routingKey = response.getRoute().getRoutingKey(); 
+			return  routingKey.getProducer()==STATION_NAME &
+					routingKey.getRoutingType()==DefyndianRoutingType.SYSTEM &
+					routingKey.getExtraRouting() == getName();
+		}
 	}
 	
 	/**

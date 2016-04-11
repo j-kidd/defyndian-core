@@ -19,12 +19,6 @@ public abstract class DefyndianSensor<T> extends DefyndianNode {
 	 */
 	public DefyndianSensor(String name, int delay) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException{
 		super(name);
-		try{
-			setPublisher();
-		} catch ( Exception e ){
-			this.close();
-			throw e;
-		}
 		DELAY = delay;
 	}
 	

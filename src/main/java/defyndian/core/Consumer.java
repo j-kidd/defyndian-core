@@ -117,7 +117,7 @@ public class Consumer extends DefaultConsumer{
 				getChannel().queueBind(queue, exchange, key.toString());
 			}
 			getChannel().queueBind(queue, exchange, directConsumerRoutingKey);
-			getChannel().queueBind(queue, exchange, new DefyndianRoutingKey("Station", DefyndianRoutingType.ALL, "*").toString());
+			getChannel().queueBind(queue, exchange, new DefyndianRoutingKey(DefyndianNode.getStationName(), DefyndianRoutingType.ALL, "*").toString());
 		} catch( IOException e ){
 			logger.error("Error declaring exchange/queue", e);
 		}

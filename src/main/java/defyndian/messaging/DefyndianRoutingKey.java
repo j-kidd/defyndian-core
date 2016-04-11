@@ -5,6 +5,17 @@ import java.util.Arrays;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * A DefyndianRoutingKey represents the topic based routing keys
+ * used to pass messages between nodes.
+ * The key comes in three parts:
+ * 1. The name of the node which produced the message (Producer)
+ * 2. The type (from DefyndianRoutingType) of the message, most will be DEFAULT (Type)
+ * 3. An optional node specific part to better inform a receipient what type of message this is (Extra)
+ * 
+ * @author james
+ *
+ */
 public class DefyndianRoutingKey {
 
 	private static final String MULTI_MATCH_CHAR = "#";

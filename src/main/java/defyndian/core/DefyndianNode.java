@@ -165,24 +165,8 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * @throws DefyndianMQException If there is no exchange specified, or a channel could not be created
 	 */
 	protected void setConsumer(RabbitMQDetails details) throws DefyndianMQException{
-		String exchange = details.getExchange();
-		String queue = details.getQueue();
-		logger.debug("Got queue : " + queue + " with key: " + details.getQueue());
-		if( exchange==null | queue==null ){
-			throw new DefyndianMQException("No exchange/queue specified for consumer");
-		}
-		setConsumer(exchange, queue);
-	}
-	
-	/**
-	 * More specific method to initialised a consumer, though with the same outcome
-	 * @param exchange The exchange to listen on
-	 * @param queue The Queue to listen on
-	 * @throws DefyndianMQException If no channel could be created
-	 */
-	protected void setConsumer(String exchange, String queue) throws DefyndianMQException{
 		try {
-			consumer = new Consumer(inbox, mqConnection.createChannel(), exchange, queue, config.getRoutingKeys());
+			consumer = new Consumer(inbox, mqConnection.createChannel(), getName(), details, config.getRoutingKeys());
 			consumer.start(InetAddress.getLocalHost().getHostName() + "-" + getName());
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not create new channel for publishing");

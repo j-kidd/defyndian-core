@@ -2,7 +2,7 @@ package defyndian.messaging;
 
 public enum DefyndianRoutingType {
 
-	DEFAULT("DEFAULT"), SYSTEM("SYSTEM"), NOTIFICATION("NOTIFICATION"), PRESENCE("PRESENCE"), ALL("*");
+	DEFAULT("DEFAULT"), DIRECT("DIRECT"), SYSTEM("SYSTEM"), NOTIFICATION("NOTIFICATION"), PRESENCE("PRESENCE"), ALL("*");
 	
 	private final String value;
 	

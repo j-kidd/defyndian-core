@@ -13,10 +13,12 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
+import defyndian.config.RabbitMQDetails;
 import defyndian.exception.DefyndianMQException;
 import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.DefyndianRoutingKey;
+import defyndian.messaging.DefyndianRoutingType;
 
 /**
  * A Consumer run Asynchronously for each Sensor; it manages the inbox by
@@ -29,8 +31,8 @@ import defyndian.messaging.DefyndianRoutingKey;
 public class Consumer extends DefaultConsumer{
 	
 	private static final Logger logger = LogManager.getLogger();
-	private static final String KEY_SEPARATOR = ",";
 	private static final ObjectMapper objectMapper = new ObjectMapper();
+	private final String directConsumerRoutingKey;
 	
 	private BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue;
 	private String exchange;
@@ -48,13 +50,14 @@ public class Consumer extends DefaultConsumer{
 	 */
 	public Consumer(	BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue, 
 						Channel channel, 
-						String exchange, 
-						String queue,
+						String name, 
+						RabbitMQDetails details,
 						Collection<DefyndianRoutingKey> routingKeys) throws DefyndianMQException{
 		super(channel);
+		directConsumerRoutingKey = String.format("*."+DefyndianRoutingType.DIRECT+".%s", name);
 		this.messageQueue = messageQueue;
-		this.exchange = exchange;
-		this.queue = queue;
+		this.exchange = details.getExchange();
+		this.queue = details.getQueue();
 		initialiseQueue(routingKeys);
 		logger.info("Consumer created: " + exchange + " " + queue);
 	}
@@ -113,6 +116,7 @@ public class Consumer extends DefaultConsumer{
 				logger.info("Binding queue - ["+exchange + ":" + key + "] -> " + queue);
 				getChannel().queueBind(queue, exchange, key.toString());
 			}
+			getChannel().queueBind(queue, exchange, directConsumerRoutingKey);
 		} catch( IOException e ){
 			logger.error("Error declaring exchange/queue", e);
 		}

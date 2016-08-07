@@ -88,8 +88,30 @@ public class DefyndianRoutingKey {
 	public String getExtraRouting(){
 		return extraRouting;
 	}
-	
-	/*
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		DefyndianRoutingKey that = (DefyndianRoutingKey) o;
+
+		if (getProducer() != null ? !getProducer().equals(that.getProducer()) : that.getProducer() != null)
+			return false;
+		if (getRoutingType() != that.getRoutingType()) return false;
+		return getExtraRouting() != null ? getExtraRouting().equals(that.getExtraRouting()) : that.getExtraRouting() == null;
+
+	}
+
+	@Override
+	public int hashCode() {
+		int result = getProducer() != null ? getProducer().hashCode() : 0;
+		result = 31 * result + (getRoutingType() != null ? getRoutingType().hashCode() : 0);
+		result = 31 * result + (getExtraRouting() != null ? getExtraRouting().hashCode() : 0);
+		return result;
+	}
+
+	/**
 	 * Returns the string representation of this routing key as used by AMQP (RabbitMQ)
 	 * @see java.lang.Object#toString()
 	 */

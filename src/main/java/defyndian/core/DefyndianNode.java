@@ -1,39 +1,25 @@
 package defyndian.core;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.sql.DataSource;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-
 import defyndian.config.DefyndianConfig;
-import defyndian.config.MysqlConfig;
 import defyndian.config.RabbitMQDetails;
 import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
-import defyndian.exception.MalformedConfigFileException;
-import defyndian.messaging.DefyndianEnvelope;
-import defyndian.messaging.DefyndianMessage;
-import defyndian.messaging.BasicDefyndianMessage;
-import defyndian.messaging.DefyndianRoutingKey;
-import defyndian.messaging.DefyndianRoutingType;
-import defyndian.messaging.InvalidRoutingKeyException;
-import defyndian.messaging.RoutingInfo;
+import defyndian.messaging.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * This is the base class for all components of the system, it contains the Inbox/Outbox 
@@ -44,7 +30,6 @@ import defyndian.messaging.RoutingInfo;
  */
 public abstract class DefyndianNode implements AutoCloseable{
 
-	private static final String BASE_LOGGER_NAME = "Defyndian";
 	private static final int MAX_INBOX_SIZE = 10;
 	private static final int MAX_OUTBOX_SIZE = 5;
 	private static final long TIMEOUT_SECONDS = 5;
@@ -53,10 +38,8 @@ public abstract class DefyndianNode implements AutoCloseable{
 	private java.sql.Connection dbConnection;
 	protected DefyndianConfig config;
 	
-	protected Logger logger;
+	private static final Logger logger = LoggerFactory.getLogger(DefyndianNode.class);
 	private boolean STOP = false;
-	private LinkedBlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> inbox;
-	private LinkedBlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> outbox;
 	protected Publisher publisher;
 	protected Consumer consumer;
 	
@@ -72,16 +55,32 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 */
 	public DefyndianNode(String name) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException{
 		this.name = name;
-		logger = LogManager.getLogger(BASE_LOGGER_NAME+"."+name);
 		config = initialiseConfig();
 		RabbitMQDetails rmqDetails = config.getRabbitMQDetails();
 		mqConnection = initialiseMQConnection(rmqDetails);
 		dbConnection = initialiseDBConnection(config.getDataSource());
-		initialiseInboxOutbox();
-		setConsumer(rmqDetails);
-		setPublisher();
+		consumer = initialiseConsumer(rmqDetails);
+		publisher = initialisePublisher();
 	}
-	
+
+    /**
+     * Fully specified constructor, to be used by container ( when one is added ? ) and
+     * for use in testing
+     * @param name
+     * @param mqConnection
+     * @param dbConnection
+     * @param config
+     * @throws DefyndianMQException
+     */
+	public DefyndianNode(String name, Connection mqConnection, java.sql.Connection dbConnection, DefyndianConfig config) throws DefyndianMQException {
+		this.config = config;
+		this.mqConnection = mqConnection;
+		this.dbConnection = dbConnection;
+
+		consumer = initialiseConsumer(config.getRabbitMQDetails());
+		publisher = initialisePublisher();
+	}
+
 	/**
 	 * Main method used to decide if a node should exit, it checks for the 
 	 * STOP value being set and then uses the overridable shouldExit method
@@ -148,15 +147,47 @@ public abstract class DefyndianNode implements AutoCloseable{
 			logger.error("Could not shutdown db connection: " + e);
 		}
 	}
-	
+
+    /**
+     * Take a message from the inbox, waiting if necessary for one to arrive
+     * @return A DefyndianEnvelope sent to this node
+     * @throws InterruptedException
+     */
+    protected DefyndianEnvelope<? extends DefyndianMessage> consume() throws InterruptedException{
+        return consumer.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Publishes a message in an envelope to the specified route
+     * @param envelope
+     * @throws InterruptedException
+     */
+    protected void publish(DefyndianEnvelope<? extends DefyndianMessage> envelope) throws InterruptedException{
+        publisher.publish(envelope);
+    }
+
+    protected void publish(String exchange, DefyndianRoutingKey routingKey, DefyndianMessage message) throws InterruptedException{
+        publish(new DefyndianEnvelope<DefyndianMessage>(RoutingInfo.getRoute(exchange, routingKey), message));
+    }
+
+    protected void publish(DefyndianMessage message) throws InterruptedException{
+        publish(new DefyndianEnvelope<DefyndianMessage>(RoutingInfo.getRoute(
+                config.getRabbitMQDetails().getExchange(),
+                DefyndianRoutingKey.getDefaultKey(getName())
+                )
+                        , message)
+        );
+    }
+
+
 	/**
-	 * Initialises the published for this node, the publisher will read messages from the outbox
+	 * Returns a newly initialised publisher,it will read messages from the outbox
 	 * and deliver them to the system
 	 * @throws DefyndianMQException If no new channel could be created within the MQConnection
 	 */
-	protected void setPublisher() throws DefyndianMQException{
+	protected Publisher initialisePublisher() throws DefyndianMQException{
 		try {
-			publisher = new Publisher(outbox, mqConnection.createChannel());
+			return new Publisher(mqConnection.createChannel());
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not create new channel for publishing");
 		}
@@ -167,10 +198,12 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * the consumer will read messages from the MQ Server and deliver them to the inbox
 	 * @throws DefyndianMQException If there is no exchange specified, or a channel could not be created
 	 */
-	protected void setConsumer(RabbitMQDetails details) throws DefyndianMQException{
+	protected Consumer initialiseConsumer(RabbitMQDetails details) throws DefyndianMQException{
 		try {
-			consumer = new Consumer(inbox, mqConnection.createChannel(), getName(), details, config.getRoutingKeys());
+			consumer = new Consumer(mqConnection.createChannel(), details, config.getRoutingKeys());
+            consumer.bindConsumer(String.format("*."+ DefyndianRoutingType.DIRECT+".%s", getName()));
 			consumer.start(InetAddress.getLocalHost().getHostName() + "-" + getName());
+            return consumer;
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not create new channel for publishing");
 		}
@@ -188,44 +221,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 		return dbConnection;
 	}
 	
-	protected DefyndianEnvelope<? extends DefyndianMessage> getMessageFromInbox() throws InterruptedException{
-		return inbox.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-	}
-	
-	protected void putMessageInOutbox(DefyndianEnvelope<? extends DefyndianMessage> envelope) throws InterruptedException{
-		outbox.put(envelope);
-	}
-	
-	protected void putMessageInOutbox(String exchange, DefyndianRoutingKey routingKey, DefyndianMessage message) throws InterruptedException{
-		putMessageInOutbox(new DefyndianEnvelope<DefyndianMessage>(RoutingInfo.getRoute(exchange, routingKey), message));
-	}
-	
-	protected void putMessageInOutbox(DefyndianMessage message) throws InterruptedException{
-		putMessageInOutbox(new DefyndianEnvelope<DefyndianMessage>(RoutingInfo.getRoute(
-																				config.getRabbitMQDetails().getExchange(),
-																				DefyndianRoutingKey.getDefaultKey(getName())
-																			)
-													, message)
-							);
-	}
-	
-	public Iterator<DefyndianEnvelope<? extends DefyndianMessage>> getOutboxMessages(){
-		return outbox.iterator();
-	}
-	
-	/**
-	 * Creates empty or clears the inbox and outbox queues
-	 */
-	private void initialiseInboxOutbox(){
-		if( inbox!=null )
-			inbox.clear();
-		else
-			inbox = new LinkedBlockingQueue<>(MAX_INBOX_SIZE);
-		if( outbox!=null )
-			outbox.clear();
-		else
-			outbox = new LinkedBlockingQueue<>(MAX_OUTBOX_SIZE);
-	}
+
 	
 	/**
 	 * Creates a new DefyndianConfig
@@ -243,7 +239,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * @return A new database connection
 	 * @throws DefyndianDatabaseException If a connection could not be created
 	 */
-	private java.sql.Connection initialiseDBConnection(DataSource dataSource) throws DefyndianDatabaseException{
+	private final java.sql.Connection initialiseDBConnection(DataSource dataSource) throws DefyndianDatabaseException{
 		try {
 			return dataSource.getConnection();
 		} catch (SQLException e) {
@@ -257,7 +253,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * @return A new MQConnection
 	 * @throws DefyndianMQException If no new connection could be created
 	 */
-	private Connection initialiseMQConnection(RabbitMQDetails details) throws DefyndianMQException {
+	private final Connection initialiseMQConnection(RabbitMQDetails details) throws DefyndianMQException {
 		ConnectionFactory factory = details.getConnectionFactory();
 		try {
 			Connection c = factory.newConnection();
@@ -267,8 +263,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 			channel.close();
 			return c;
 		} catch (IOException | TimeoutException e) {
-			logger.error(e);
-			throw new DefyndianMQException(e.getMessage());
+			throw new DefyndianMQException("Couldn't initialise MQ Connection", e);
 		}
 	}
 }

@@ -8,10 +8,13 @@ import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
 import defyndian.messaging.BasicDefyndianMessage;
 import defyndian.messaging.DefyndianEnvelope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class DefyndianActor extends DefyndianNode {
 	
 	private static final String MESSAGE_HANDLER_METHOD_NAME = "handleMessage";
+	private static final Logger logger = LoggerFactory.getLogger(DefyndianActor.class);
 
 	/**
 	 * Creates a consumer in addition to DefyndianNode construction
@@ -28,7 +31,7 @@ public abstract class DefyndianActor extends DefyndianNode {
 	 * @throws InterruptedException If no message is read from the inbox in the timeout period
 	 */
 	protected void tryToProcessAMessage() throws InterruptedException{
-		DefyndianEnvelope envelope = getMessageFromInbox();
+		DefyndianEnvelope envelope = consume();
 		if( envelope != null ){  // Null is returned on timeout
 			try{
 				Method messageHandler = this.getClass().getDeclaredMethod(MESSAGE_HANDLER_METHOD_NAME,

@@ -13,6 +13,8 @@ import defyndian.exception.DefyndianMQException;
 import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.BasicDefyndianMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A DefyndianBot represents a Node which has both publish and consume capabilities
@@ -24,6 +26,7 @@ import defyndian.messaging.BasicDefyndianMessage;
 public abstract class DefyndianBot extends DefyndianNode{
 
 	private static final String MESSAGE_HANDLER_METHOD_NAME = null;
+	private static final Logger logger = LoggerFactory.getLogger(DefyndianBot.class);
 
 	/**
 	 * DefyndianNode with both a publisher and consumer
@@ -33,8 +36,6 @@ public abstract class DefyndianBot extends DefyndianNode{
 	 */
 	public DefyndianBot(String name) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException{
 		super(name);
-		setPublisher();
-		setConsumer(config.getRabbitMQDetails());
 	}
 
 	/**
@@ -42,7 +43,7 @@ public abstract class DefyndianBot extends DefyndianNode{
 	 * @throws InterruptedException If no message is read from the inbox in the timeout period
 	 */
 	protected Collection<DefyndianEnvelope> tryToProcessAMessage() throws InterruptedException{
-		DefyndianEnvelope envelope = getMessageFromInbox();
+		DefyndianEnvelope envelope = consume();
 
 		if( envelope != null ){  // Null is returned on timeout
 			try{
@@ -79,7 +80,7 @@ public abstract class DefyndianBot extends DefyndianNode{
 		while( !topShouldExit() ){
 			try{
 				for( DefyndianEnvelope e : tryToProcessAMessage() ){
-					putMessageInOutbox(e);
+					publish(e);
 				}
 			} catch (InterruptedException e){
 				logger.error("Interrupted while getting message from inbox");

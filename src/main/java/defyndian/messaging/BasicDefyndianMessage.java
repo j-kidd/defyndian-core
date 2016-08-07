@@ -33,11 +33,11 @@ public class BasicDefyndianMessage extends TimeStampedMessage {
 	public boolean equals(Object other){
 		if( other == this )
 			return true;
-		else if( other.getClass() != this.getClass() )
+		else if( other==null || other.getClass() != this.getClass() )
 			return false;
 		
 		BasicDefyndianMessage otherMessage = (BasicDefyndianMessage) other;
-		return message.equals(otherMessage.getMessage()) & getTimestamp() == otherMessage.getTimestamp();
+		return message.equals(otherMessage.getMessage()) && getTimestamp() == otherMessage.getTimestamp();
 	}
 	
 	@Override

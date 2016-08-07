@@ -3,9 +3,8 @@ package defyndian.core;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
@@ -19,6 +18,8 @@ import defyndian.messaging.DefyndianEnvelope;
 import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.DefyndianRoutingKey;
 import defyndian.messaging.DefyndianRoutingType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A Consumer run Asynchronously for each Sensor; it manages the inbox by
@@ -30,32 +31,22 @@ import defyndian.messaging.DefyndianRoutingType;
  */
 public class Consumer extends DefaultConsumer{
 	
-	private static final Logger logger = LogManager.getLogger();
+	private static final Logger logger = LoggerFactory.getLogger(Consumer.class);
 	private static final ObjectMapper objectMapper = new ObjectMapper();
-	private final String directConsumerRoutingKey;
-	
+
 	private BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue;
 	private String exchange;
 	private String queue;
-	
+
 	/**
 	 * Fully specified constructor for a new consumer
-	 * @param messageQueue The Queue messages are placed in after being retrieved over AMQP
 	 * @param channel The AMQP channel to use
-	 * @param exchange The Exchange to make bindings with
-	 * @param queue The Queue to consume on
 	 * @param routingKeys The routingkeys to bind the queue with
-	 * @param logger The Logger to use
 	 * @throws DefyndianMQException If an exception occurs during setup of the AMQP connection
 	 */
-	public Consumer(	BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue, 
-						Channel channel, 
-						String name, 
-						RabbitMQDetails details,
-						Collection<DefyndianRoutingKey> routingKeys) throws DefyndianMQException{
+	public Consumer(Channel channel, RabbitMQDetails details, Collection<DefyndianRoutingKey> routingKeys) throws DefyndianMQException{
 		super(channel);
-		directConsumerRoutingKey = String.format("*."+DefyndianRoutingType.DIRECT+".%s", name);
-		this.messageQueue = messageQueue;
+		this.messageQueue = new LinkedBlockingQueue<>();
 		this.exchange = details.getExchange();
 		this.queue = details.getQueue();
 		initialiseQueue(routingKeys);
@@ -96,6 +87,14 @@ public class Consumer extends DefaultConsumer{
 		}
 		
 	}
+
+	public void bindConsumer(String key) throws IOException {
+		getChannel().queueBind(queue, exchange, key);
+	}
+
+	public DefyndianEnvelope<? extends DefyndianMessage> poll(long timeout, TimeUnit unit) throws InterruptedException {
+		return messageQueue.poll(timeout, unit);
+	}
 	
 	/**
 	 * Sets up the queue and exchange with any bindings specified
@@ -116,7 +115,6 @@ public class Consumer extends DefaultConsumer{
 				logger.info("Binding queue - ["+exchange + ":" + key + "] -> " + queue);
 				getChannel().queueBind(queue, exchange, key.toString());
 			}
-			getChannel().queueBind(queue, exchange, directConsumerRoutingKey);
 			getChannel().queueBind(queue, exchange, new DefyndianRoutingKey("Station", DefyndianRoutingType.ALL, "*").toString());
 		} catch( IOException e ){
 			logger.error("Error declaring exchange/queue", e);

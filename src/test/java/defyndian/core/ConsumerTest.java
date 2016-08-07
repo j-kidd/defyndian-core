@@ -60,7 +60,7 @@ public class ConsumerTest {
 		when(mockFactory.getHost()).then(s -> "FakeHost");
 		when(mockFactory.getUsername()).then(s -> "FakeUser");
 		when(mockFactory.getPassword()).then(s -> "FakePassword");
-		consumer = new Consumer(messageQueue, channel, "TestConsumer", new RabbitMQDetails(exchange, queue, mockFactory), Arrays.asList(routingKeyA, routingKeyB));
+		consumer = new Consumer(channel, new RabbitMQDetails(exchange, queue, mockFactory), Arrays.asList(routingKeyA, routingKeyB));
 	}
 	
 	@Test

@@ -5,8 +5,12 @@ import java.util.Collection;
 import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class DefyndianSensor<T> extends DefyndianNode {
+
+	private static final Logger logger = LoggerFactory.getLogger(DefyndianSensor.class);
 
 	private final Integer DELAY;
 	
@@ -19,12 +23,6 @@ public abstract class DefyndianSensor<T> extends DefyndianNode {
 	 */
 	public DefyndianSensor(String name, int delay) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException{
 		super(name);
-		try{
-			setPublisher();
-		} catch ( Exception e ){
-			this.close();
-			throw e;
-		}
 		DELAY = delay;
 	}
 	

@@ -9,8 +9,9 @@
   allow interaction with various parts of the system.
   
 ## Technologies
-  The system uses a [MariaDB database](https://mariadb.org/) to store config info, and an AMQP broker for communications,
-  the system currently relies on [RabbitMQ](https://www.rabbitmq.com/), with a single topic exchange.
+  The system an AMQP broker for communications, currently [RabbitMQ](https://www.rabbitmq.com/), with a single topic exchange.
+  There is the option to use a database for state/object and config storage, this is setup to use [MariaDB](https://mariadb.org/).
+  The Jackson Databinding library is also used heavily to map messages being sent as JSON to/from objects.
   These technologies are available in the standard repos.
  
 ## Current State

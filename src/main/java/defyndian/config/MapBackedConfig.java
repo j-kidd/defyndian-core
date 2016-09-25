@@ -24,10 +24,7 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 
 	private static final String GLOBAL_NAMESPACE = "defyndian";
 	
-	protected static final String DB_HOST_KEY = "db.host";
-	protected static final String DB_USERNAME_KEY = "db.username";
-	protected static final String DB_PASSWORD_KEY = "db.password";
-	protected static final String DB_DATABASE_KEY = "db.database";
+	protected static final String DATASTORE_KEY = "datastore.type";
 	
 	protected static final String MQ_HOST_KEY = "mq.host";
 	protected static final String MQ_USERNAME_KEY = "mq.username";
@@ -39,14 +36,12 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 	private Map<String, Map<String, String>> config;
 	private RabbitMQDetails rabbitMQDetails;
 	private Collection<DefyndianRoutingKey> routingKeys;
-	private DataSource datasource;
-	
+
 	public MapBackedConfig(String name, Properties init) throws ConfigInitialisationException {
 		super(name, init);
 		config = new HashMap<>();
 		config.putAll(initialiseConfig());
 		rabbitMQDetails = initialiseRabbitMQDetails();
-		datasource = initialiseDataSource();
 		routingKeys = convertRoutingKeys(get(MQ_ROUTING_KEYS));
 	}
 	
@@ -87,8 +82,8 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 		return rabbitMQDetails;
 	}
 	
-	public DataSource getDataSource(){
-		return datasource;
+	public String getDatastoreType(){
+		return get(DATASTORE_KEY);
 	}
 
 	
@@ -129,23 +124,6 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 		connectionFactory.setUsername(get(MQ_USERNAME_KEY));
 		connectionFactory.setPassword(get(MQ_PASSWORD_KEY));
 		return new RabbitMQDetails(exchange, queue, connectionFactory);
-	}
-	
-	private final DataSource initialiseDataSource() throws ConfigInitialisationException {
-		MysqlDataSource datasource = new MysqlDataSource();
-		String host = get(DB_HOST_KEY);
-		String user = get(DB_USERNAME_KEY);
-		String password = get(DB_PASSWORD_KEY);
-		String database = get(DB_DATABASE_KEY);
-		if( user==null | host==null | password==null | database==null ){
-			throw new ConfigInitialisationException("Host, User, Password and database must be specified for database connection");
-		}
-		
-		datasource.setServerName(host);
-		datasource.setUser(user);
-		datasource.setPassword(password);
-		datasource.setDatabaseName(database);
-		return datasource;
 	}
 	
 	private Collection<DefyndianRoutingKey> convertRoutingKeys(String keys) throws ConfigInitialisationException{

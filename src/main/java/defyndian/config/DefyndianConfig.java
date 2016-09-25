@@ -98,14 +98,13 @@ public abstract class DefyndianConfig {
 	 * specs of the broker
 	 */
 	public abstract RabbitMQDetails getRabbitMQDetails();
-	
-	/**
-	 * Returns the datasource to use for the main database used by nodes
-	 * @return A datasource from node ofr global namespace to connect
-	 * to the main database on
-	 */
-	public abstract DataSource getDataSource();
-	
+
+    /**
+     * Get the value which identifies what datastore type should be used
+     * @return A string identifying the datastore to use
+     */
+    public abstract String getDatastoreType();
+
 	/**
 	 * Method to persist inserted values to backing store
 	 */

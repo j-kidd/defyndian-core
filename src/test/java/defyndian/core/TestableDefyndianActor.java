@@ -1,5 +1,9 @@
 package defyndian.core;
 
+import com.rabbitmq.client.Connection;
+import defyndian.config.DefyndianConfig;
+import defyndian.datastore.DefyndianDatastore;
+import defyndian.datastore.exception.DatastoreCreationException;
 import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
@@ -17,15 +21,13 @@ public class TestableDefyndianActor extends DefyndianActor{
 
     private final List<? super DefyndianMessage> receivedMessages;
 
-    /**
-     * Creates a consumer in addition to DefyndianNode construction
-     *
-     * @param name Name of this actor
-     * @throws DefyndianMQException       As thrown by DefyndianNode constructor
-     * @throws DefyndianDatabaseException As thrown by DefyndianNode constructor
-     */
-    public TestableDefyndianActor(String name) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException {
-        super(name);
+    public TestableDefyndianActor
+            (String name,
+             DefyndianConfig config,
+             Publisher publisher,
+             Consumer consumer,
+             DefyndianDatastore datastore){
+        super(name, config, publisher, consumer, datastore);
         receivedMessages = new LinkedList<>();
     }
 

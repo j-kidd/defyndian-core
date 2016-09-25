@@ -1,9 +1,12 @@
 package defyndian.core;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -27,7 +30,13 @@ import defyndian.messaging.DefyndianMessage;
 import defyndian.messaging.DefyndianRoutingKey;
 import defyndian.messaging.DefyndianRoutingType;
 import defyndian.messaging.InvalidRoutingKeyException;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ConsumerTest {
 
 	private static final String consumerTag = "CONSUMER_TAG";
@@ -39,10 +48,11 @@ public class ConsumerTest {
 	
 	private static DefyndianEnvelope<? extends DefyndianMessage> sampleEnvelopeA;
 	private static DefyndianEnvelope<? extends DefyndianMessage> sampleEnvelopeB;
-	
-	private BlockingQueue<DefyndianEnvelope<? extends DefyndianMessage>> messageQueue;
-	private static Channel channel;
-	private Consumer consumer;
+
+	@Mock private Channel channel;
+	@Mock private RabbitMQDetails rabbitMQDetails;
+
+    private Consumer consumer;
 	
 	@BeforeClass
 	public static void setupMessages() throws InvalidRoutingKeyException{
@@ -50,29 +60,29 @@ public class ConsumerTest {
 		routingKeyB = new DefyndianRoutingKey("TEST.*.EXTRA");
 		sampleEnvelopeA = new DefyndianEnvelope<BasicDefyndianMessage>(routingKeyA, new BasicDefyndianMessage("Sample Message A"));
 		sampleEnvelopeB = new DefyndianEnvelope<BasicDefyndianMessage>(routingKeyB, new BasicDefyndianMessage("Sample Message B"));
-		channel = mock(Channel.class);
 	}
 	
 	@Before
-	public void createConsumer() throws DefyndianMQException, ConfigInitialisationException{
-		messageQueue = new LinkedBlockingQueue<>();
-		ConnectionFactory mockFactory = mock(ConnectionFactory.class);
-		when(mockFactory.getHost()).then(s -> "FakeHost");
-		when(mockFactory.getUsername()).then(s -> "FakeUser");
-		when(mockFactory.getPassword()).then(s -> "FakePassword");
-		consumer = new Consumer(channel, new RabbitMQDetails(exchange, queue, mockFactory), Arrays.asList(routingKeyA, routingKeyB));
-	}
+	public void setup() throws DefyndianMQException, ConfigInitialisationException{
+        MockitoAnnotations.initMocks(this);
+        consumer = new Consumer(channel, rabbitMQDetails, Arrays.asList(routingKeyA, routingKeyB));
+    }
 	
 	@Test
-	public void testStartCleanly() throws DefyndianMQException {
+	public void testStartCleanly() throws Exception {
 		consumer.start(consumerTag);
 	}
 	
 	@Test
-	public void sampleMessageIsDelivered() throws JsonProcessingException{
-		consumer.handleDelivery(consumerTag, new Envelope(1, false, exchange, routingKeyA.toString()), null, mapper.writeValueAsBytes(sampleEnvelopeA));
-		DefyndianEnvelope<? extends DefyndianMessage> envelope = messageQueue.poll();
+	public void handleDelivery_simpleMessage_deliveredSuccessfully() throws Exception {
+		consumer.handleDelivery(
+				consumerTag,
+				new Envelope(1, false, exchange, routingKeyA.toString()),
+				null,
+				mapper.writeValueAsBytes(sampleEnvelopeA));
+		DefyndianEnvelope<? extends DefyndianMessage> envelope = consumer.poll(1, TimeUnit.SECONDS);
 		assert(envelope != null);
 		assert(envelope.getMessage().equals(sampleEnvelopeA.getMessage()));
 	}
+
 }

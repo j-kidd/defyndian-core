@@ -5,6 +5,9 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import defyndian.config.DefyndianConfig;
 import defyndian.config.RabbitMQDetails;
+import defyndian.datastore.DatastoreBuilder;
+import defyndian.datastore.DefyndianDatastore;
+import defyndian.datastore.exception.DatastoreCreationException;
 import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
 import defyndian.exception.DefyndianMQException;
@@ -16,8 +19,7 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -31,26 +33,18 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class DefyndianNode implements AutoCloseable{
 
-	private static final String BASE_LOGGER_NAME = "Defyndian";
 	private static final String STATION_NAME = "Station";
-	private static final int MAX_INBOX_SIZE = 10;
-	private static final int MAX_OUTBOX_SIZE = 5;
 	private static final long TIMEOUT_SECONDS = 5;
-	
-	private Connection mqConnection;
-	private java.sql.Connection dbConnection;
+    private static final Logger logger = LoggerFactory.getLogger(DefyndianNode.class);
+
 	protected DefyndianConfig config;
 
-	private static final Logger logger = LoggerFactory.getLogger(DefyndianNode.class);
-	private boolean STOP = false;
+	private volatile boolean STOP = false;
 	protected Publisher publisher;
 	protected Consumer consumer;
-
+    protected DefyndianDatastore datastore;
 	private final String name;
 
-	// A node is in Brigade if it is in contact with a DefyndianStation on this network
-	private boolean inBrigade;
-	
 	/**
 	 * The constructor initialises all managed resources and declares the
 	 * queues/exchanges from the config
@@ -59,35 +53,36 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * @throws DefyndianDatabaseException If the DBConnection could not be initialised
 	 * @throws ConfigInitialisationException 
 	 */
-	public DefyndianNode(String name) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException{
-		this(name, initialiseConfig(name));
+	public DefyndianNode(String name, Connection connection) throws DefyndianMQException, ConfigInitialisationException, DatastoreCreationException {
+		this(name, connection, initialiseConfig(name));
 	}
-
-	public DefyndianNode(String name, DefyndianConfig config) throws DefyndianMQException, DefyndianDatabaseException{
-        this(   name,
-                initialiseMQConnection(config.getRabbitMQDetails()),
-                initialiseDBConnection(config.getDataSource()),
-                config);
-    }
 
     /**
      * Fully specified constructor, to be used by container ( when one is added ? ) and
      * for use in testing
      * @param name
-     * @param mqConnection
-     * @param dbConnection
      * @param config
      * @throws DefyndianMQException
      */
-	public DefyndianNode(String name, Connection mqConnection, java.sql.Connection dbConnection, DefyndianConfig config) throws DefyndianMQException {
-		this.name = name;
-        this.config = config;
-		this.mqConnection = mqConnection;
-		this.dbConnection = dbConnection;
-
-		consumer = initialiseConsumer(config.getRabbitMQDetails());
-		publisher = initialisePublisher();
+	public DefyndianNode(String name, Connection connection, DefyndianConfig config) throws DefyndianMQException, DatastoreCreationException {
+		this(   name,
+                config,
+                initialisePublisher(connection),
+                initialiseConsumer(name, config.getRoutingKeys(), connection, config.getRabbitMQDetails()),
+                DatastoreBuilder.newDatastore(config.getDatastoreType(), name));
 	}
+
+    public DefyndianNode(String name,
+                         DefyndianConfig config,
+                         Publisher publisher,
+                         Consumer consumer,
+                         DefyndianDatastore datastore){
+        this.name = name;
+        this.config = config;
+        this.publisher = publisher;
+        this.consumer = consumer;
+        this.datastore = datastore;
+    }
 
 	/**
 	 * Main method used to decide if a node should exit, it checks for the 
@@ -143,17 +138,6 @@ public abstract class DefyndianNode implements AutoCloseable{
 		if( publisher!=null ){
 			publisher.setStop();
 		}
-		try{
-			mqConnection.close();
-		} catch( IOException e ){
-			logger.error("Could not shutdown mq connection: " + e);
-		}
-		
-		try {
-			dbConnection.close();
-		} catch (SQLException e) {
-			logger.error("Could not shutdown db connection: " + e);
-		}
 	}
 
     /**
@@ -193,24 +177,25 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * and deliver them to the system
 	 * @throws DefyndianMQException If no new channel could be created within the MQConnection
 	 */
-	protected Publisher initialisePublisher() throws DefyndianMQException{
-		try {
-			return new Publisher(mqConnection.createChannel());
-		} catch (IOException e) {
-			throw new DefyndianMQException("Could not create new channel for publishing");
-		}
-	}
+	protected static Publisher initialisePublisher(Connection connection) throws DefyndianMQException{
+        try {
+            return new Publisher(connection.createChannel());
+        } catch (IOException e) {
+            throw new DefyndianMQException("Couldn't create new channel for Publisher");
+        }
+    }
 	
 	/**
 	 * Initialises a consumer with the exchange/queue values from the config,
 	 * the consumer will read messages from the MQ Server and deliver them to the inbox
 	 * @throws DefyndianMQException If there is no exchange specified, or a channel could not be created
 	 */
-	protected Consumer initialiseConsumer(RabbitMQDetails details) throws DefyndianMQException{
-		try {
-			consumer = new Consumer(mqConnection.createChannel(), details, config.getRoutingKeys());
-            consumer.bindConsumer(String.format("*."+ DefyndianRoutingType.DIRECT+".%s", getName()));
-			consumer.start(InetAddress.getLocalHost().getHostName() + "-" + getName());
+	protected static Consumer initialiseConsumer(String name, Collection<DefyndianRoutingKey> routingKeys, Connection connection, RabbitMQDetails details) throws DefyndianMQException{
+		final Consumer consumer;
+        try {
+			consumer = new Consumer(connection.createChannel(), details, routingKeys);
+            consumer.bindConsumer(String.format("*."+ DefyndianRoutingType.DIRECT+".%s", name));
+			consumer.start(InetAddress.getLocalHost().getHostName() + "-" + name);
             return consumer;
 		} catch (IOException e) {
 			throw new DefyndianMQException("Could not create new channel for publishing");
@@ -223,14 +208,6 @@ public abstract class DefyndianNode implements AutoCloseable{
 	
 	public static final String getStationName(){
 		return STATION_NAME;
-	}
-	
-	protected Connection getMQConnection(){
-		return mqConnection;
-	}
-	
-	protected java.sql.Connection getDBConnection(){
-		return dbConnection;
 	}
 	
 	/**

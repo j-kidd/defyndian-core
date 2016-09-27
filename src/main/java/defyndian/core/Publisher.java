@@ -78,8 +78,7 @@ public class Publisher implements Runnable{
 				logger.debug("Publishing message to [ " + envelope.getRoute().getExchange()+":"+envelope.getRoute().getRoutingKey()+" ]");
 				channel.basicPublish(envelope.getRoute().getExchange(), envelope.getRoute().getRoutingKey().toString(), null, objectMapper.writeValueAsBytes(envelope));
 			} catch (IOException e) {
-				logger.error("Could not publish message: " + envelope);
-				logger.debug("Failed publish - " + e, e);
+				logger.error("Could not publish message: {}", envelope, e);
 			}
 		}
 	}

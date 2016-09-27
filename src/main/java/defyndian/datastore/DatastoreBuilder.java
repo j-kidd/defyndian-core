@@ -15,13 +15,7 @@ public class DatastoreBuilder {
     private static final DatastoreType DEFAULT_DATASTORE = DatastoreType.FILES;
 
     public static final DefyndianDatastore newDatastore(String type, String name) throws DatastoreCreationException{
-        DatastoreType datastoreType;
-        try {
-            datastoreType = DatastoreType.valueOf(type);
-        } catch (IllegalArgumentException e){
-            logger.error("No such datastore type {}. Using default type {}", type, DEFAULT_DATASTORE);
-            datastoreType = DEFAULT_DATASTORE;
-        }
+        final DatastoreType datastoreType = decideDatastoreType(type);
         try {
             return (DefyndianDatastore) datastoreType.getDatastoreClass().getConstructor(String.class).newInstance(name);
         } catch (InstantiationException e) {
@@ -34,5 +28,22 @@ public class DatastoreBuilder {
             logger.error("Error while creating new datastore of type {}", datastoreType, e);
             throw new DatastoreCreationException("Couldn't create datastore", e);
         }
+    }
+
+    private static final DatastoreType decideDatastoreType(String type){
+        DatastoreType datastoreType;
+        if( type==null ) {
+            logger.error("No such datastore type {}. Using default type {}", type, DEFAULT_DATASTORE);
+            datastoreType = DEFAULT_DATASTORE;
+        }
+        else {
+            try {
+                datastoreType = DatastoreType.valueOf(type);
+            } catch (IllegalArgumentException e) {
+                logger.error("No such datastore type {}. Using default type {}", type, DEFAULT_DATASTORE);
+                datastoreType = DEFAULT_DATASTORE;
+            }
+        }
+        return datastoreType;
     }
 }

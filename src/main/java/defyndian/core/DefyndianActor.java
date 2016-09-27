@@ -30,11 +30,15 @@ public abstract class DefyndianActor extends DefyndianNode {
 		super(name, connection);
 	}
 
+	public DefyndianActor(String name, Connection connection, DefyndianConfig config) throws DefyndianMQException, DatastoreCreationException {
+		super(name, connection, config);
+	}
+
 	public DefyndianActor(String name,
-						 DefyndianConfig config,
-						 Publisher publisher,
-						 Consumer consumer,
-						 DefyndianDatastore datastore){
+						  DefyndianConfig config,
+						  Publisher publisher,
+						  Consumer consumer,
+						  DefyndianDatastore datastore){
 		super(name, config, publisher, consumer, datastore);
 	}
 

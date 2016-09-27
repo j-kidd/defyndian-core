@@ -45,9 +45,9 @@ public class DefyndianRoutingKey {
 				}
 				case 1: {
 					if( topics[0].equals(MULTI_MATCH_CHAR) ){
-						producer = "";
+						producer = "*";
 						routingType = DefyndianRoutingType.ALL;
-						extraRouting = "";
+						extraRouting = "*";
 					}
 					else {
 						throw new InvalidRoutingKeyException("RoutingKeys must contain three sections, see docs");
@@ -63,7 +63,7 @@ public class DefyndianRoutingKey {
 					else if( topics[1].equals(MULTI_MATCH_CHAR) ){
 						producer = topics[0];
 						routingType = DefyndianRoutingType.ALL;
-						extraRouting = "";
+						extraRouting = "*";
 					}
 					else{
 						throw new InvalidRoutingKeyException("RoutingKeys must contain three sections (or wildcards), see docs");
@@ -127,6 +127,6 @@ public class DefyndianRoutingKey {
 	 * @see java.lang.Object#toString()
 	 */
 	public String toString(){
-		return producer +"."+ routingType +"."+ extraRouting;
+		return producer +"."+ routingType.getValue() +"."+ extraRouting;
 	}
 }

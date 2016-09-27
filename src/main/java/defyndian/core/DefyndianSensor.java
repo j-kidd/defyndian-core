@@ -3,6 +3,7 @@ package defyndian.core;
 import java.util.Collection;
 
 import com.rabbitmq.client.Connection;
+import defyndian.config.DefyndianConfig;
 import defyndian.datastore.exception.DatastoreCreationException;
 import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
@@ -14,7 +15,7 @@ public abstract class DefyndianSensor<T> extends DefyndianNode {
 
 	private static final Logger logger = LoggerFactory.getLogger(DefyndianSensor.class);
 
-	private final Integer DELAY;
+	private final int DELAY;
 	
 	/**
 	 * Creates a published in addition to DefyndianNode construction
@@ -27,7 +28,12 @@ public abstract class DefyndianSensor<T> extends DefyndianNode {
 		super(name, connection);
 		DELAY = delay;
 	}
-	
+
+	public DefyndianSensor(String name, int delay, Connection connection, DefyndianConfig config) throws DefyndianMQException, DatastoreCreationException {
+		super(name, connection, config);
+		this.DELAY = delay;
+	}
+
 	/**
 	 * Method to check the 'sensor' this node represents, all objects in the returned
 	 * collection are passed to createMessages

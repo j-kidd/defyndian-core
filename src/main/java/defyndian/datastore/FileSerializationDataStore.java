@@ -23,12 +23,11 @@ public class FileSerializationDataStore extends DefyndianDatastore<Serializable>
     private final AtomicInteger id;
     private static final Charset charset = Charset.forName("UTF-8");
 
-    public FileSerializationDataStore(String name){
+    public FileSerializationDataStore(String name) throws IOException {
         super(name);
         datastoreDirectory = new File(generateDirectoryName(getName()));
-        if( !datastoreDirectory.exists() ||
-            !datastoreDirectory.isDirectory()){
-            throw new IllegalArgumentException("Datastore directory must exist");
+        if( !datastoreDirectory.exists()){
+            Files.createDirectory(datastoreDirectory.toPath());
         }
         id = new AtomicInteger(0);
     }

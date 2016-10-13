@@ -4,24 +4,27 @@ import defyndian.datastore.exception.DatastoreLoadException;
 import defyndian.datastore.exception.DatastoreSaveException;
 import defyndian.datastore.exception.NoSuchDocumentException;
 
+import javax.print.Doc;
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Created by james on 25/09/16.
  */
-public class FileSerializationDataStore extends DefyndianDatastore<Serializable> {
+public class FileSerializationDataStore<D extends Document> extends DefyndianDatastore<D> {
 
     private static final String NAME_DIGEST_ALGO = "SHA-1";
 
     private final File datastoreDirectory;
-    private final AtomicInteger id;
-    private static final Charset charset = Charset.forName("UTF-8");
+    private final Map<String, File> objectMap;
 
     public FileSerializationDataStore(String name) throws IOException {
         super(name);
@@ -29,13 +32,14 @@ public class FileSerializationDataStore extends DefyndianDatastore<Serializable>
         if( !datastoreDirectory.exists()){
             Files.createDirectory(datastoreDirectory.toPath());
         }
-        id = new AtomicInteger(0);
+        objectMap = Arrays  .stream(datastoreDirectory.listFiles())
+                            .collect(Collectors.toMap(f -> f.getName(), Function.identity()));
     }
 
     @Override
-    public int save(Serializable doc) throws DatastoreSaveException {
-        final int docId = id.getAndIncrement();
-        final File documentFile = new File(datastoreDirectory, Integer.toString(docId));
+    public String save(D doc) throws DatastoreSaveException {
+        final String id = doc.id();
+        final File documentFile = new File(datastoreDirectory, id);
 
         try( ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(documentFile)) ){
             objectOutputStream.writeObject(doc);
@@ -43,16 +47,16 @@ public class FileSerializationDataStore extends DefyndianDatastore<Serializable>
         } catch (IOException e) {
             throw new DatastoreSaveException("Couldn't save document " + doc, e);
         }
-        return docId;
+        return doc.id();
     }
 
     @Override
-    public Serializable load(int id) throws DatastoreLoadException{
-        final File documentFile = new File(datastoreDirectory, documentFileNameForId(id));
-        final Serializable document;
+    public D load(String id) throws DatastoreLoadException{
+        final File documentFile = new File(datastoreDirectory, id);
+        final D document;
         try {
             final ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(documentFile));
-            document = (Serializable) objectInputStream.readObject();
+            document = (D) objectInputStream.readObject();
         } catch (IOException e) {
             throw new NoSuchDocumentException("No document saved for ID " + id);
         } catch (ClassNotFoundException e){
@@ -61,12 +65,9 @@ public class FileSerializationDataStore extends DefyndianDatastore<Serializable>
         return document;
     }
 
-    private static String documentFileNameForId(int id){
-        return Integer.toString(id);
-    }
-
-    private static int idFromDocumentFileName(String fileName){
-        return Integer.valueOf(fileName);
+    @Override
+    public Collection<String> listIds() {
+        return objectMap.keySet();
     }
 
     private static final String generateDirectoryName(String name){

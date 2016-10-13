@@ -29,7 +29,7 @@ import defyndian.messaging.DefyndianRoutingKey;
 public abstract class DefyndianConfig {
 
 	private static final ConfigType DEFAULT_CONFIG_TYPE = ConfigType.BASIC;
-	private static final String CONFIG_PROPERTIES = "defyndian.properties";
+	private static final String CONFIG_PROPERTIES = "nodes.properties";
 	private static final String CONFIG_TYPE_KEY = "config.type";
 	private static Properties conf;
 	
@@ -51,20 +51,10 @@ public abstract class DefyndianConfig {
 	}
 	
 	public static DefyndianConfig getConfig(String name) throws ConfigInitialisationException{
-		File configProperties;
-		try {
-			URL properties = DefyndianConfig.class.getClassLoader().getResource(CONFIG_PROPERTIES);
-			if( properties == null ){
-				throw new ConfigInitialisationException(new FileNotFoundException("No " + CONFIG_PROPERTIES + " file on classpath"));
-			}
-			configProperties = new File(properties.toURI());
-			if( ! configProperties.canRead() )
-				throw new ConfigInitialisationException("Initialisation Properties file " + CONFIG_PROPERTIES + " isn't readable/cannot be found");
-			return getConfig(name, configProperties);
-		} catch (URISyntaxException e) {
-			throw new ConfigInitialisationException(e);
-		}
-		
+		final File configProperties = new File(CONFIG_PROPERTIES);
+		if( ! configProperties.canRead() )
+			throw new ConfigInitialisationException("Initialisation Properties file " + CONFIG_PROPERTIES + " isn't readable/cannot be found");
+		return getConfig(name, configProperties);
 	}
 	/**
 	 * Retrieve the value for this key

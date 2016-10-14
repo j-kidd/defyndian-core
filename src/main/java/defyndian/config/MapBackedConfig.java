@@ -31,6 +31,8 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 	protected static final String MQ_PASSWORD_KEY = "mq.password";
 	protected static final String MQ_EXCHANGE_KEY = "mq.exchange";
 	protected static final String MQ_QUEUE_KEY = "mq.queue";
+	protected static final String MQ_VIRTUAL_HOST_KEY = "mq.virtualHost";
+	protected static final String DEFAULT_VIRTUAL_HOST = "defyndian";
 	protected static final String MQ_ROUTING_KEYS = "mq.routingkeys";
 	
 	private Map<String, Map<String, String>> config;
@@ -123,6 +125,7 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 		connectionFactory.setHost(get(MQ_HOST_KEY));
 		connectionFactory.setUsername(get(MQ_USERNAME_KEY));
 		connectionFactory.setPassword(get(MQ_PASSWORD_KEY));
+		connectionFactory.setVirtualHost(get(MQ_VIRTUAL_HOST_KEY, DEFAULT_VIRTUAL_HOST));
 		return new RabbitMQDetails(exchange, queue, connectionFactory);
 	}
 	

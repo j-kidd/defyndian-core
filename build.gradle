@@ -5,7 +5,7 @@ apply plugin: 'maven'
 
 install {
     repositories.mavenInstaller {
-        pom.version = '1.4.0'
+        pom.version = '1.4.1'
 		pom.groupId = 'com.defyndian'
         pom.artifactId = 'defyndian-core'
     }

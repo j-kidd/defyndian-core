@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
@@ -35,88 +37,56 @@ public abstract class MapBackedConfig extends DefyndianConfig {
 	protected static final String DEFAULT_VIRTUAL_HOST = "defyndian";
 	protected static final String MQ_ROUTING_KEYS = "mq.routingkeys";
 	
-	private Map<String, Map<String, String>> config;
+	private Map<String, String> config;
 	private RabbitMQDetails rabbitMQDetails;
 	private Collection<DefyndianRoutingKey> routingKeys;
 
 	public MapBackedConfig(String name, Properties init) throws ConfigInitialisationException {
-		super(name, init);
-		config = new HashMap<>();
+		super(name);
+		config = init.stringPropertyNames().stream()
+					.collect(Collectors.toMap(Function.identity(), init::getProperty));
 		config.putAll(initialiseConfig());
 		rabbitMQDetails = initialiseRabbitMQDetails();
 		routingKeys = convertRoutingKeys(get(MQ_ROUTING_KEYS));
+
 	}
 	
 	/**
-	 * Method to initialise the config with at least MQ and DB parameters to allow 
-	 * a node basic functionality
+	 * Method to initialise the config with extra parameters
 	 */
-	protected abstract Map<String, Map<String, String>> initialiseConfig() throws ConfigInitialisationException;
+	protected abstract Map<String, String> initialiseConfig() throws ConfigInitialisationException;
 	
 	@Override
 	public final String get(String key) {
-		String nodeValue = getFromNamespace(getName(), key);
-		if( nodeValue!=null )
-			return nodeValue;
-		else
-			return getFromNamespace(GLOBAL_NAMESPACE, key);
+		return config.get(key);
 	}
 
 	@Override
-	public final String get(String key, String defaultValue) {
-		String nodeValue = getFromNamespace(getName(), key);
-		if( nodeValue!=null )
-			return nodeValue;
-		else{
-			String globalValue = getFromNamespace(GLOBAL_NAMESPACE, key);
-			if( globalValue!=null )
-				return globalValue;
-			else 
-				return defaultValue;
-		}
-	}
-	
 	public Collection<DefyndianRoutingKey> getRoutingKeys() {
 		return routingKeys;
 	}
-	
+
+	@Override
 	public RabbitMQDetails getRabbitMQDetails(){
 		return rabbitMQDetails;
 	}
-	
-	public String getDatastoreType(){
-		return get(DATASTORE_KEY);
-	}
 
-	
 	@Override
 	public final void put(String key, String value) {
-		config.get(getName()).put(key, value);
+		config.put(key, value);
 	}
 	
 	public final void putAll(Map<String, String> mappings){
-		config.get(getName()).putAll(mappings);
+		config.putAll(mappings);
 	}
-	
-	protected final void putGlobal(String key, String value){
-		config.get(GLOBAL_NAMESPACE).put(key, value);
+
+	public final String get(String key, String defaultValue){
+		final String value = config.get(key);
+		if( value==null )
+			return defaultValue;
+		else
+			return value;
 	}
-	
-	protected final void putAllGlobal(Map<String, String> mappings) {
-		config.get(GLOBAL_NAMESPACE).putAll(mappings);
-	}
-	
-	protected final String getGlobalNamespaceName() {
-		return GLOBAL_NAMESPACE;
-	}
-	
-	private final String getFromNamespace(String namespace, String key){
-		Map<String, String> namespaceConfig = config.get(namespace);
-		if( namespaceConfig==null )
-			return null;
-		return namespaceConfig.get(key);
-	}
-	
 	
 	private final RabbitMQDetails initialiseRabbitMQDetails() throws ConfigInitialisationException {
 		String exchange = get(MQ_EXCHANGE_KEY);

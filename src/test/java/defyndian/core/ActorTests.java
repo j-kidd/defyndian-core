@@ -40,6 +40,7 @@ public class ActorTests {
         }
     };
     private final DefyndianEnvelope unknownEnvelope = new DefyndianEnvelope(testKey, unknownMessage);
+
     @Before
 	public void setup() throws Exception {
 

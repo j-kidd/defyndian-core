@@ -1,5 +1,6 @@
 package defyndian.core;
 
+import java.io.IOException;
 import java.util.Collection;
 
 import com.rabbitmq.client.Connection;
@@ -24,12 +25,12 @@ public abstract class DefyndianSensor<T> extends DefyndianNode {
 	 * @throws DefyndianMQException As thrown by DefyndianNode constructor
 	 * @throws DefyndianDatabaseException As thrown by DefyndianNode constructor
 	 */
-	public DefyndianSensor(String name, int delay, Connection connection) throws DefyndianMQException, ConfigInitialisationException, DatastoreCreationException {
+	public DefyndianSensor(String name, int delay, Connection connection) throws DefyndianMQException, ConfigInitialisationException, DatastoreCreationException, IOException {
 		super(name, connection);
 		DELAY = delay;
 	}
 
-	public DefyndianSensor(String name, int delay, Connection connection, DefyndianConfig config) throws DefyndianMQException, DatastoreCreationException {
+	public DefyndianSensor(String name, int delay, Connection connection, DefyndianConfig config) throws DefyndianMQException, DatastoreCreationException, IOException {
 		super(name, connection, config);
 		this.DELAY = delay;
 	}

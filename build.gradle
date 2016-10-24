@@ -1,22 +1,17 @@
 
+apply from: 'defyndian-parent.gradle'
 apply plugin: 'java'
 apply plugin: 'maven'
 ////////////
 
+project.version = '2.0'
+
 install {
     repositories.mavenInstaller {
-        pom.version = '1.4.1'
+        pom.version = project.version
 		pom.groupId = 'com.defyndian'
         pom.artifactId = 'defyndian-core'
     }
-}
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-repositories{
-	mavenLocal()
-	mavenCentral()
 }
 
 dependencies{
@@ -32,9 +27,6 @@ dependencies{
 
 }
 
-test {
-	testLogging.showStandardStreams = true
-}
 
 //////////
 

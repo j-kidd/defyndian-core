@@ -7,6 +7,7 @@ import defyndian.config.DefyndianConfig;
 import defyndian.config.RabbitMQDetails;
 import defyndian.datastore.DatastoreBuilder;
 import defyndian.datastore.DefyndianDatastore;
+import defyndian.datastore.FileSerializationDataStore;
 import defyndian.datastore.exception.DatastoreCreationException;
 import defyndian.exception.ConfigInitialisationException;
 import defyndian.exception.DefyndianDatabaseException;
@@ -53,7 +54,7 @@ public abstract class DefyndianNode implements AutoCloseable{
 	 * @throws DefyndianDatabaseException If the DBConnection could not be initialised
 	 * @throws ConfigInitialisationException 
 	 */
-	public DefyndianNode(String name, Connection connection) throws DefyndianMQException, ConfigInitialisationException, DatastoreCreationException {
+	public DefyndianNode(String name, Connection connection) throws DefyndianMQException, ConfigInitialisationException, DatastoreCreationException, IOException {
 		this(name, connection, initialiseConfig(name));
 	}
 
@@ -64,12 +65,13 @@ public abstract class DefyndianNode implements AutoCloseable{
      * @param config
      * @throws DefyndianMQException
      */
-	public DefyndianNode(String name, Connection connection, DefyndianConfig config) throws DefyndianMQException, DatastoreCreationException {
+	public DefyndianNode(String name, Connection connection, DefyndianConfig config) throws DefyndianMQException, DatastoreCreationException, IOException {
 		this(   name,
                 config,
                 initialisePublisher(connection),
                 initialiseConsumer(name, config.getRoutingKeys(), connection, config.getRabbitMQDetails()),
-                DatastoreBuilder.newDatastore(config.getDatastoreType(), name));
+                new FileSerializationDataStore<>("DefaultFileStore")
+		);
 	}
 
     public DefyndianNode(String name,

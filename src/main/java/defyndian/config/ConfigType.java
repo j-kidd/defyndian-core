@@ -7,11 +7,11 @@ import defyndian.exception.ConfigInitialisationException;
 
 public enum ConfigType {
 
-	BASIC(BasicConfig.class), MYSQL(MysqlConfig.class);
+	BASIC(BasicConfig.class);
 	
 	private final Class<? extends DefyndianConfig> configType;
 	
-	private ConfigType(Class<? extends DefyndianConfig> configType){
+	ConfigType(Class<? extends DefyndianConfig> configType){
 		this.configType = configType;
 	}
 	

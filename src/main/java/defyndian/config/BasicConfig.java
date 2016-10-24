@@ -32,7 +32,7 @@ import defyndian.exception.MalformedConfigFileException;
 public class BasicConfig extends MapBackedConfig{
 
 	private static final String CONFIG_FILE_EXT = ".conf";
-	private static final String CONFIG_DIRECTORY_KEY = "config.basic.d";
+	private static final String CONFIG_DIRECTORY_KEY = "config.d";
 	private static final String COMMENT_CHAR = "#";
 	private static final Pattern KEY_VALUE_SEPARATORS = Pattern.compile("[=:\\-\\s]+");
 
@@ -43,15 +43,14 @@ public class BasicConfig extends MapBackedConfig{
 	}
 	
 	@Override
-	protected final Map<String, Map<String, String>> initialiseConfig() throws ConfigInitialisationException {
-		String configDirectoryName = getFromLocal(CONFIG_DIRECTORY_KEY);
+	protected final Map<String, String> initialiseConfig() throws ConfigInitialisationException {
+		String configDirectoryName = get(CONFIG_DIRECTORY_KEY);
 		File configDir;
 		if( configDirectoryName!=null ){
 			if ((configDir=new File(configDirectoryName)).exists() )
 				configDirectory = configDir;
 			else
 				throw new ConfigInitialisationException("Config directory " + configDir + " doesn't exist");
-				
 		}
 		else
 			configDirectory = Paths.get("").toAbsolutePath().toFile();
@@ -59,23 +58,23 @@ public class BasicConfig extends MapBackedConfig{
 		return initialiseConfig(configDirectory);
 	}
 
-	protected Map<String, Map<String,String>> initialiseConfig(File configDirectory) throws ConfigInitialisationException {
+	protected Map<String,String> initialiseConfig(File configDirectory) throws ConfigInitialisationException {
 		File[] filesInConfigDir = configDirectory.listFiles();
 		if( filesInConfigDir==null ){
 			throw new ConfigInitialisationException("Config directory is not a valid directory - " + configDirectory);
 		}
-		Map<String, Map<String, String>> conf = new HashMap<>();
-		for( File namespace : filesInConfigDir ){
+		Map<String, String> conf = new HashMap<>();
+		for( File confFile : filesInConfigDir ){
 			try{
-				if( namespace.getName().endsWith(CONFIG_FILE_EXT) )
-					conf.put(namespace.getName().replaceAll(CONFIG_FILE_EXT, ""), readConfigFile(namespace.getAbsoluteFile()));
+				if( confFile.getName().endsWith(CONFIG_FILE_EXT) )
+					conf.putAll(readConfigFile(confFile.getAbsoluteFile()));
 			} catch( MalformedConfigFileException | IOException e ){
 				throw new ConfigInitialisationException(e);
 			}
 		}
 		return conf;
 	}
-	
+
 	@Override
 	public void save() {
 		// TODO Auto-generated method stub

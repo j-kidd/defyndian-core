@@ -29,32 +29,26 @@ import defyndian.messaging.DefyndianRoutingKey;
 public abstract class DefyndianConfig {
 
 	private static final ConfigType DEFAULT_CONFIG_TYPE = ConfigType.BASIC;
-	private static final String CONFIG_PROPERTIES = "nodes.properties";
 	private static final String CONFIG_TYPE_KEY = "config.type";
-	private static Properties conf;
-	
 	private final String name;
-	
-	protected DefyndianConfig(String name, Properties initialisation){
+
+	protected DefyndianConfig(String name){
 		this.name = name;
-		conf = initialisation;
 	}
-	
-	public static DefyndianConfig getConfig(String name, File propertiesFile) throws ConfigInitialisationException{
-		conf = new Properties();
-		try{
-			conf.load(new BufferedReader(new FileReader(propertiesFile)));
-		} catch( IOException e){
-			throw new ConfigInitialisationException(e);
-		}
-		return ConfigType.valueOf(conf.getProperty(CONFIG_TYPE_KEY, DEFAULT_CONFIG_TYPE.toString())).getConfig(name, conf);
-	}
-	
+
 	public static DefyndianConfig getConfig(String name) throws ConfigInitialisationException{
-		final File configProperties = new File(CONFIG_PROPERTIES);
+		final String configFileName = String.format("%s.properties", name);
+		final File configProperties = new File(configFileName);
 		if( ! configProperties.canRead() )
-			throw new ConfigInitialisationException("Initialisation Properties file " + CONFIG_PROPERTIES + " isn't readable/cannot be found");
-		return getConfig(name, configProperties);
+			throw new ConfigInitialisationException("Initialisation Properties file " + configFileName + " isn't readable/cannot be found");
+		final Properties conf = new Properties();
+		try {
+			conf.load(new FileReader(configProperties));
+		} catch (IOException e) {
+			throw new ConfigInitialisationException("Error while reading properties", e);
+		}
+		final ConfigType configType = ConfigType.valueOf(conf.getProperty(CONFIG_TYPE_KEY, DEFAULT_CONFIG_TYPE.toString()));
+		return configType.getConfig(name, conf);
 	}
 	/**
 	 * Retrieve the value for this key
@@ -89,12 +83,6 @@ public abstract class DefyndianConfig {
 	 */
 	public abstract RabbitMQDetails getRabbitMQDetails();
 
-    /**
-     * Get the value which identifies what datastore type should be used
-     * @return A string identifying the datastore to use
-     */
-    public abstract String getDatastoreType();
-
 	/**
 	 * Method to persist inserted values to backing store
 	 */
@@ -105,11 +93,6 @@ public abstract class DefyndianConfig {
 	protected final String getName(){
 		return name;
 	}
-	
-	public String getFromLocal(String key){
-		return conf.getProperty(key);
-	}
-	
 }
 	
 	

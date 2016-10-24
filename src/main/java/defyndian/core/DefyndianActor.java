@@ -1,5 +1,6 @@
 package defyndian.core;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -26,11 +27,11 @@ public abstract class DefyndianActor extends DefyndianNode {
 	 * @throws DefyndianMQException As thrown by DefyndianNode constructor
 	 * @throws DefyndianDatabaseException As thrown by DefyndianNode constructor
 	 */
-	public DefyndianActor(String name, Connection connection) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException, DatastoreCreationException {
+	public DefyndianActor(String name, Connection connection) throws DefyndianMQException, DefyndianDatabaseException, ConfigInitialisationException, DatastoreCreationException, IOException {
 		super(name, connection);
 	}
 
-	public DefyndianActor(String name, Connection connection, DefyndianConfig config) throws DefyndianMQException, DatastoreCreationException {
+	public DefyndianActor(String name, Connection connection, DefyndianConfig config) throws DefyndianMQException, DatastoreCreationException, IOException {
 		super(name, connection, config);
 	}
 

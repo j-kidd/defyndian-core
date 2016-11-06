@@ -12,8 +12,17 @@ public class RabbitMQDetails {
 	private final ConnectionFactory connectionFactory;
 	
 	public RabbitMQDetails(String exchange, String queue, ConnectionFactory factory) throws ConfigInitialisationException{
-		if( exchange==null || queue==null || factory==null || factory.getHost()==null || factory.getUsername()==null || factory.getPassword()==null)
-			throw new ConfigInitialisationException("Must specify exchange, queue and all connection parameters for RabbitMQ");
+		if( exchange==null || queue==null || factory.getHost()==null || factory.getUsername()==null || factory.getPassword()==null)
+			throw new ConfigInitialisationException(String.format(
+					"Must specify exchange, queue and all connection parameters for RabbitMQ. {" +
+							"exchange: %s," +
+							"queue: %s," +
+							"host: %s," +
+							"username: %s," +
+							"password: %s," +
+							"}",
+					exchange, queue, factory.getHost(), factory.getUsername(), factory.getPassword()
+					));
 		this.exchange = exchange;
 		this.queue = queue;
 		this.connectionFactory = factory;

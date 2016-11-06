@@ -32,7 +32,8 @@ import defyndian.exception.MalformedConfigFileException;
 public class BasicConfig extends MapBackedConfig{
 
 	private static final String CONFIG_FILE_EXT = ".conf";
-	private static final String CONFIG_DIRECTORY_KEY = "config.d";
+	private static final String CONFIG_DIRECTORY_KEY = "config.directory";
+	private final String DEFAULT_CONFIG_DIRECTORY = "node-config";
 	private static final String COMMENT_CHAR = "#";
 	private static final Pattern KEY_VALUE_SEPARATORS = Pattern.compile("[=:\\-\\s]+");
 
@@ -53,7 +54,7 @@ public class BasicConfig extends MapBackedConfig{
 				throw new ConfigInitialisationException("Config directory " + configDir + " doesn't exist");
 		}
 		else
-			configDirectory = Paths.get("").toAbsolutePath().toFile();
+			configDirectory = Paths.get(DEFAULT_CONFIG_DIRECTORY).toAbsolutePath().toFile();
 
 		return initialiseConfig(configDirectory);
 	}

@@ -1,13 +1,18 @@
 package defyndian.config;
 
 import defyndian.exception.ConfigInitialisationException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class BasicConfigTest {
 
@@ -18,19 +23,34 @@ public class BasicConfigTest {
 		confProperties.put("third", "c");
 		confProperties.put("fourth","d");
 	}
-	
-	private final String configName = "BasicConfigTest";
-	
-	@Before
-	public void setup(){
 
+	private static final File configDirectory = new File("node-config");
+
+	private Properties baseProperties;
+	
+	private final String configName = "basicConfig.conf";
+
+	@Before
+	public void setup() throws IOException {
+		baseProperties = new Properties();
+		baseProperties.setProperty("config.type", ConfigType.BASIC.toString());
+		TestUtils.createDirectory(configDirectory);
+	}
+
+	@After
+	public void cleanup(){
+		TestUtils.deleteDirectory(configDirectory);
 	}
 	
 	@Test
-	public void testPropertiesLoaded() throws ConfigInitialisationException {
-		DefyndianConfig config = DefyndianConfig.getConfig(configName);
+	public void constructNew_goodConfig_allPropertiesLoaded() throws ConfigInitialisationException, IOException {
+		TestUtils.copyConfigFile(configName, configDirectory);
+		DefyndianConfig config = new BasicConfig(configName, baseProperties);
 		for( String key : confProperties.keySet() ){
-			assertEquals(confProperties.get(key), config.get(key));
+			final String actualValue = config.get(key);
+			final String expected = confProperties.get(key);
+			assertThat(String.format("Key '%s' incorrect value '%s' expected '%s'", key, actualValue, expected),
+					actualValue, equalTo(expected));
 		}
 	}
 }

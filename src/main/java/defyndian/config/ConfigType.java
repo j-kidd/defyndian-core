@@ -3,11 +3,13 @@ package defyndian.config;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 
+import defyndian.config.json.JsonTreeConfig;
 import defyndian.exception.ConfigInitialisationException;
 
 public enum ConfigType {
 
-	BASIC(BasicConfig.class);
+	BASIC(BasicConfig.class),
+	JSON(JsonTreeConfig.class);
 	
 	private final Class<? extends DefyndianConfig> configType;
 	

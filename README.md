@@ -15,7 +15,8 @@
   of nodes can be brought up in a single command
  
 ## Current State
-  This is very much a project under development, the core is there but will most likely receive serious revision, as well as expansion. One major planned change is the development of a Node master which will manage all Defyndian Nodes running on a single system; this should allow sharing of resources (ie. Database connections). 
+  This is very much a project under development, the core is there but will most likely receive serious revision,
+  as well as expansion.
 
 ## Goals
   A stable finished core library which will allow the easy development of nodes which perform specific tasks in the house currently planned:

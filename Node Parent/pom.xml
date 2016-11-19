@@ -4,13 +4,13 @@
     <parent>
         <groupId>com.defyndian.core</groupId>
         <artifactId>parent</artifactId>
-        <version>2.0.0</version>
+        <version>[A</version>
         <relativePath>..</relativePath>
     </parent>
 
     <groupId>com.defyndian</groupId>
     <artifactId>node-parent</artifactId>
-    <version>${parent.version}</version>
+    <version>${project.parent.version}</version>
     <packaging>pom</packaging>
 
     <properties>

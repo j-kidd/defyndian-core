@@ -34,7 +34,7 @@ public class TestUtils {
     }
 
     protected static void copyConfigFile(String configFile, File configDirectory) throws IOException {
-        Files.copy( JsonTreeConfig.class.getResourceAsStream("/"+configFile),
+        Files.copy( TestUtils.class.getResourceAsStream("/"+configFile),
                     configDirectory.toPath().resolve(configFile));
     }
 

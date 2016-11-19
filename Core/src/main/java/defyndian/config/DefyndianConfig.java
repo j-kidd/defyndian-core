@@ -1,8 +1,7 @@
 package defyndian.config;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
 import java.util.Collection;
 import java.util.Properties;
 
@@ -31,12 +30,12 @@ public abstract class DefyndianConfig {
 
 	public static DefyndianConfig getConfig(String name) throws ConfigInitialisationException{
 		final String configFileName = String.format("%s.properties", name);
-		final File configProperties = new File(configFileName);
-		if( ! configProperties.canRead() )
+		final InputStream configProperties = DefyndianConfig.class.getResourceAsStream(configFileName);
+		if( configProperties==null )
 			throw new ConfigInitialisationException("Initialisation Properties file " + configFileName + " isn't readable/cannot be found");
 		final Properties conf = new Properties();
 		try {
-			conf.load(new FileReader(configProperties));
+			conf.load(new BufferedReader(new InputStreamReader(configProperties)));
 		} catch (IOException e) {
 			throw new ConfigInitialisationException("Error while reading properties", e);
 		}

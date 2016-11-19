@@ -10,9 +10,9 @@
   
 ## Technologies
   The system an AMQP broker for communications, currently [RabbitMQ](https://www.rabbitmq.com/), with a single topic exchange.
-  There is the option to use a database for state/object and config storage, this is setup to use [MariaDB](https://mariadb.org/).
   The Jackson Databinding library is also used heavily to map messages being sent as JSON to/from objects.
-  These technologies are available in the standard repos.
+  Each node builds a Docker image, allowing them to be run easily on any system. Using docker-compose a collection
+  of nodes can be brought up in a single command
  
 ## Current State
   This is very much a project under development, the core is there but will most likely receive serious revision, as well as expansion. One major planned change is the development of a Node master which will manage all Defyndian Nodes running on a single system; this should allow sharing of resources (ie. Database connections). 
@@ -26,7 +26,6 @@
 Several additional elements for system usability are:
   * Voice control integration, possibly?
   * Web interface for monitoring/controlling the system
-  * REST API for each node (embedded Jetty container?)
     
 
   

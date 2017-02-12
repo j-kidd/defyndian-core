@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.defyndian.core</groupId>
         <artifactId>parent</artifactId>
-        <version>2.0.2</version>
+        <version>2.0.3</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -14,7 +14,8 @@
 
     <properties>
         <java.version>1.8</java.version>
-        <docker.registry>com.defyndian</docker.registry>
+        <docker.registry>docker.io</docker.registry>
+        <docker.repo>defyndian</docker.repo>
         <docker.imageName>${project.name}</docker.imageName>
     </properties>
 
@@ -41,9 +42,11 @@
                     <artifactId>docker-maven-plugin</artifactId>
                     <version>0.4.13</version>
                     <configuration>
-                        <imageName>${docker.registry}/${docker.imageName}</imageName>
+                        <imageName>${docker.registry}/${docker.repo}/${docker.imageName}</imageName>
                         <baseImage>openjdk:8-jre-alpine</baseImage>
                         <entryPoint>["java", "-jar", "/${project.build.finalName}.jar"]</entryPoint>
+                        <useConfigFile>true</useConfigFile>
+                        <pushImage>true</pushImage>
                         <resources>
                             <resource>
                                 <targetPath>/</targetPath>
@@ -55,7 +58,6 @@
                             <imageTag>${project.version}</imageTag>
                             <imageTag>latest</imageTag>
                         </imageTags>
-                        <pushImage>false</pushImage>
                     </configuration>
                     <executions>
                         <execution>
@@ -64,6 +66,16 @@
                             <goals>
                                 <goal>build</goal>
                             </goals>
+                        </execution>
+                        <execution>
+                            <id>push-image</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>push</goal>
+                            </goals>
+                            <configuration>
+                                <imageName>${docker.registry}/${docker.repo}/${docker.imageName}:${project.version}</imageName>
+                            </configuration>
                         </execution>
                     </executions>
                 </plugin>
